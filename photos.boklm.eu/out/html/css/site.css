@@ -1,0 +1,118 @@
+body {
+    margin: 0px 0px 0px 0px;
+    background: black;
+    color: #eeeeee;
+}
+
+img {
+    border: 0;
+}
+A {
+    color: #999999;
+    text-decoration: none;
+}
+A:link {
+    color: #999999;
+    text-decoration: none;
+}
+A:visited {
+    color: #999999;
+    text-decoration: none;
+}
+A:active {
+    color: #999999;
+    text-decoration: none;
+}
+A:hover	{ 
+    color: #999999;
+    text-decoration: none;
+}
+
+h1 {
+    text-align: left;
+    padding-left: 25px;
+}
+
+h1 A:link {
+    color: #eeeeee; text-decoration: none;
+}
+h1 A:visited {
+    color: #eeeeee; text-decoration: none;
+}
+
+h2 {
+    text-align: center;
+    padding-right: 25px;
+}
+
+h1#sitetitle {
+    text-align: left;
+    padding-left: 50px;
+    font-size: 1.3em;
+}
+
+a#license {
+    position: absolute;
+    top:0;
+    right:0;
+    text-align: right;
+    color: white;
+    padding-top: 20px;
+    padding-right: 20px;
+    font-size: 0.8em;
+}
+
+#menu {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    font-size: 0.8em;
+    color: white;
+}
+
+#index {
+    margin-left: 40px;
+    margin-bottom: 20px;
+    margin-top: 50px;
+}
+
+#tags_index {
+    font-size: 2em;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 20px;
+    width: 550px;
+    padding: 10px;
+}
+
+.post_text {
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 20px;
+    width: 550px;
+    padding: 10px;
+}
+
+.image {
+    float: center;
+    width: auto;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 30px;
+    padding-bottom: 15px;
+    text-align: center;
+}
+
+.index_image {
+    float: left;
+    width: 250px;
+    height: 250px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.foot_link {
+    text-align: center;
+}

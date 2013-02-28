@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>[% config.sitename %]</title>
+        <link>[% config.siteurl %]</link>
+        <description>[% config.sitename %]</description>
+        <language>en</language>
+
+        <atom:link href="[% config.siteurl %]/index.rss" rel="self" type="application/rss+xml" />
+
+        [% FOR post IN oposts %]
+        [%- IF ! post.noindex -%]
+
+        <item>
+            <title>[% post.summary %]</title>
+            <link>[% config.siteurl %]/[% post.name %].html</link>
+            <guid isPermaLink="false">boklm.eu:[% post.name %]</guid>
+            [% USE date %]
+            <pubDate>[% date.format(post.pubtime, format => '%a, %d %b %Y %H:%M:%S', gmt => 1) %] GMT</pubDate>
+            [% FOR tag IN post.tags %]
+            <category>[% tag %]</category>
+            [% END %]
+            <description>
+                &lt;p&gt;&lt;a href=&quot;[% config.siteurl %]/[% post.name %].html&quot;&gt;
+                &lt;img src=&quot;[% config.imgsurl %]/[% post.img %]-m.jpg&quot; alt=&quot;[% img %]&quot; /&gt;
+                &lt;/a&gt;&lt;/p&gt;
+            </description>
+        </item>
+
+        [%- END -%]
+        [%- END -%]
+    </channel>
+</rss>

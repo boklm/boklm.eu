@@ -1,0 +1,334 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Flickr::API;
+use File::Basename;
+use YAML qw/LoadFile DumpFile/;
+use Template;
+use Cwd qw/realpath/;
+use LWP::Simple;
+use Data::Dump qw/dump/;
+
+my $dname = dirname($0);
+my $bname = basename($0);
+
+sub path {
+    ( $_[0] =~ m|^/| ) ? $_[0] : "$dname/../$_[0]";
+}
+my $config_file = "$dname/../conf/$bname";
+my %config = %{LoadFile($config_file)};
+
+my $in_posts = path($config{in_posts});
+my $in_imgs = path($config{in_imgs});
+
+my %posts;
+my %imgs;
+
+my %source_ext = (
+    Large    => '-l.jpg',
+    Medium   => '-m.jpg',
+    Original => '-o.jpg',
+    Small    => '-s.jpg',
+);
+
+my $flickrconfig;
+sub flickrconfig {
+    return $flickrconfig if $flickrconfig;
+    my $configfile = $config{flickrconfig};
+    $configfile =~ s|^~/|$ENV{HOME}/|;
+    return $flickrconfig = LoadFile($configfile);
+}
+
+sub loadimage {
+    my ($imgid) = @_;
+    return if exists $imgs{$imgid};
+    my $filename = "$in_imgs/$imgid.img";
+    if ( -f $filename) {
+        $imgs{$imgid} = LoadFile($filename);
+    } else {
+        $imgs{$imgid} = flickrphoto($imgid);
+        DumpFile($filename, $imgs{$imgid});
+    }
+    for my $src (keys %{$imgs{$imgid}->{sources}}) {
+        my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
+        $imgs{$imgid}->{local}->{$src} = -f $imgfile;
+    }
+}
+
+sub loadpost {
+    my ($postname) = @_;
+    return if exists $posts{$postname};
+    $posts{$postname} = LoadFile("$in_posts/$postname.post");
+    print "Loaded $postname\n";
+    for my $img (@{$posts{$postname}->{imgs}}) {
+        loadimage($img);
+    }
+}
+
+sub loadthings {
+    my @things = @_;
+    for my $thing (@things) {
+        if (-f "$in_posts/$thing.post") {
+            loadpost($thing);
+        } elsif (-f "$in_imgs/$thing.img") {
+            loadimage($thing);
+        } elsif (-f $thing) {
+            my $path = realpath($thing);
+            my $postsdir = realpath($in_posts);
+            my $imgsdir = realpath($in_imgs);
+            if ($path =~ m|^$postsdir/(.*)\.post$|) {
+                loadpost($1);
+            } elsif ($path =~ m|^$imgsdir/(.*)\.img$|) {
+                loadimage($1);
+            } else {
+                print STDERR "Could not load $thing\n";
+            }
+        } else {
+            print STDERR "Could not load $thing\n";
+        }
+    }
+}
+
+sub processtemplate {
+    my ($template, $input, $vars, $output) = @_;
+    for my $format (@{$config{out_formats}}) {
+        next unless -f join '/', path($config{tmpl}), "$input.$format";
+        $template->process("$input.$format", $vars, "$output.$format")
+                || die $template->error;
+    }
+}
+
+sub mkindex {
+    my $z;
+    for my $post (glob "$in_posts/*.post") {
+        $post =~ s/$in_posts\/(.*)\.post/$1/;
+        loadpost($post);
+    }
+    my $template = Template->new({
+            INCLUDE_PATH => path($config{tmpl}),
+            OUTPUT_PATH  => path($config{out_pages}),
+        });
+    my @oposts = sort { $b->{pubtime} <=> $a->{pubtime} } values %posts;
+    my $vars = {
+        config => \%config,
+        posts  => \%posts,
+        oposts  => \@oposts,
+        imgs   => \%imgs,
+    };
+    processtemplate($template, 'index', $vars, 'index');
+}
+
+sub mkpost {
+    shift;
+    my $template = Template->new({
+            INCLUDE_PATH => path($config{tmpl}),
+            OUTPUT_PATH  => path($config{out_pages}),
+        });
+    my @posts = @_ ? @_ : glob "$in_posts/*.post";
+    for my $post (@posts) {
+        if (! -f "$in_posts/$post.post") {
+            next unless -f $post;
+            $post = realpath($post);
+            my $in = realpath($in_posts);
+            $post =~ s|^$in/(.*)\.post$|$1|;
+        }
+        loadpost($post);
+        my $vars = {
+            config => \%config,
+            post   =>  $posts{$post},
+            imgs   => \%imgs,
+        };
+        processtemplate($template, 'post', $vars, $post);
+    }
+}
+
+sub mktag {
+    shift;
+    my @tlist = @_;
+    my %tags;
+    loadthings(glob "$in_posts/*.post");
+    for my $post (keys %posts) {
+        next unless defined $posts{$post}->{tags};
+        for my $tag (@{$posts{$post}->{tags}}) {
+            push @{$tags{$tag}}, $post;
+        }
+    }
+    my $template = Template->new({
+            INCLUDE_PATH => path($config{tmpl}),
+            OUTPUT_PATH  => path($config{out_tags}),
+        });
+    @tlist = keys %tags unless @tlist;
+    for my $tagname (keys %tags) {
+        $tags{$tagname} = [ sort { $posts{$b}->{pubtime} 
+            <=> $posts{$a}->{pubtime} } @{$tags{$tagname}} ];
+    }
+    for my $tagname (@tlist) {
+        my $vars = {
+            config  => \%config,
+            tagname => $tagname,
+            tags    => \%tags,
+            posts   => \%posts,
+            imgs    => \%imgs,
+        };
+        processtemplate($template, 'tag', $vars, $tagname);
+    }
+    my $vars = {
+        config  => \%config,
+        tags    => \%tags,
+        posts   => \%posts,
+        imgs    => \%imgs,
+    };
+    processtemplate($template, 'tagsindex', $vars, 'index');
+}
+
+sub download {
+    local $| = 1;
+    shift;
+    loadthings(@_ ? @_ : glob "$in_posts/*.post");
+    for my $imgid (keys %imgs) {
+        for my $src (keys %{$imgs{$imgid}->{sources}}) {
+            next if $imgs{$imgid}->{local}->{$src};
+            my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
+            my $url = $imgs{$imgid}->{sources}->{$src};
+            print "Downloading $imgid$source_ext{$src}: ";
+            my $content = get($url);
+            die "failed to download $url" unless defined $content;
+            open(my $fh, '>', $imgfile);
+            print $fh $content;
+            close $fh;
+            print "OK\n";
+        }
+    }
+}
+
+sub flickrphoto {
+    my ($photoid) = @_;
+    print "Loading metadata for photo $photoid from flickr\n";
+    my %infos;
+    my $flickrapi = new Flickr::API({
+            'key'    => flickrconfig()->{key},
+            'secret' => flickrconfig()->{secret}
+        });
+    my $resp = $flickrapi->execute_method('flickr.photos.getInfo', {
+            auth_token => flickrconfig()->{auth_token},
+            photo_id   => $photoid,
+        });
+    for my $n (@{$resp->{tree}->{children}}) {
+        if (defined $n->{name} and $n->{name} eq 'photo') {
+            for my $o (@{$n->{children}}) {
+                next unless defined $o->{name};
+                if ($o->{name} eq 'visibility') {
+                    if ($o->{'attributes'}->{'ispublic'} eq '0') {
+                        return;
+                    }
+                }
+                if ($o->{name} eq 'title') {
+                    $infos{name} = $o->{children}[0]->{content};
+                }
+            }
+        }
+    }
+    $resp = $flickrapi->execute_method('flickr.photos.getSizes', {
+            auth_token => flickrconfig()->{auth_token},
+            photo_id   => $photoid,
+        });
+    for my $n (@{$resp->{tree}->{children}}) {
+        next unless (exists $n->{name} and $n->{name} eq 'sizes'); 
+        for my $size (@{$n->{children}}) {
+            next unless exists $size->{name} and $size->{name} eq 'size';
+            next unless exists $size->{attributes};
+            my $label = $size->{attributes}->{label};
+            next unless grep {$_ eq $label} (keys %source_ext);
+            $infos{sources}->{$label} = $size->{attributes}->{source};
+        }
+    }
+    return \%infos;
+}
+
+sub flickrset {
+    my ($setid) = @_;
+    my %infos = ( flickrset => $setid );
+    my $flickrapi = new Flickr::API({
+            'key'    => flickrconfig()->{key},
+            'secret' => flickrconfig()->{secret}
+        });
+    my $resp = $flickrapi->execute_method('flickr.photosets.getInfo', {
+            auth_token  => flickrconfig()->{auth_token},
+            photoset_id => $setid,
+        });
+    for my $n (@{$resp->{tree}->{children}}) {
+        next unless (exists $n->{name} and $n->{name} eq 'photoset');
+        for my $z (@{$n->{children}}) {
+            next unless exists $z->{name};
+            if ($z->{name} eq 'title') {
+                $infos{summary} = $z->{children}->[0]->{content};
+            } elsif ($z->{name} eq 'description' && $z->{children}->[0]->{content}) {
+                $infos{text} = $z->{children}->[0]->{content};
+            }
+        }
+    }
+    $resp = $flickrapi->execute_method('flickr.photosets.getPhotos', {
+            auth_token     => flickrconfig()->{auth_token},
+            photoset_id    => $setid,
+            privacy_filter => $config{flickr_privacyfilter},
+        });
+    for my $n (@{$resp->{tree}->{children}}) {
+        next unless (exists $n->{name} and $n->{name} eq 'photoset');
+        for my $z (@{$n->{children}}) {
+            next unless exists $z->{name} and $z->{name} eq 'photo';
+            push @{$infos{imgs}}, $z->{attributes}->{id};
+        }
+    }
+    $infos{img} = $infos{imgs}->[0];
+    return \%infos;
+}
+
+sub newpost {
+    my ($act, $postname, $flickrset) = @_;
+    my $postfile = "$in_posts/$postname.post";
+    die "$postname already exists" if -f $postfile;
+    my %post;
+    if ($act eq 'newset') {
+        %post = %{flickrset($flickrset)};
+    }
+    $post{name} = $postname;
+    $post{tags} = [];
+    $post{pubtime} = time;
+    $post{noindex} = 0;
+    DumpFile($postfile, \%post);
+    system('editor', $postfile);
+}
+
+sub mkall {
+    mkpost(@_);
+    mkindex(@_);
+    mktag(@_);
+}
+
+sub test {
+    my $set = flickrset('72157625182330472');
+    #my $set = flickrset('72157606699201082');
+    dump $set;
+}
+
+my %actions = (
+    mkpost   => \&mkpost,
+    mkindex  => \&mkindex,
+    mktag    => \&mktag,
+    mkall    => \&mkall,
+    download => \&download,
+    newpost  => \&newpost,
+    newset   => \&newpost,
+    test     => \&test,
+);
+
+if (@ARGV == 0) {
+    mkall();
+} elsif (exists $actions{$ARGV[0]}) {
+    $actions{$ARGV[0]}->(@ARGV);
+} else {
+    print STDERR "Unknow command $ARGV[0]\n",
+                 "Available commands :\n",
+                 map { "- $_\n" }  keys %actions;
+}
+

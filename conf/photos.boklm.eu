@@ -1,0 +1,14 @@
+flickrconfig: ~/.flickrconfig
+flickr_privacyfilter: 1
+out_formats:
+ - html
+ - rss
+out_pages: photos.boklm.eu/out/html
+out_tags: photos.boklm.eu/out/html/t
+out_imgs: photos.boklm.eu/out/imgs
+in_posts: photos.boklm.eu/posts
+in_imgs: photos.boklm.eu/imgs
+tmpl: photos.boklm.eu/tmpl
+sitename: photos.boklm.eu
+siteurl: http://photos.boklm.eu
+imgsurl: http://im.boklm.eu

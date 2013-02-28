@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <title>[% post.summary %]</title>
+        <link rel="stylesheet" href="css/site.css" type="text/css" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="author" content="Nicolas Vigier (boklm)" />
+    </head>
+    <body>
+        [% INCLUDE pagetop.html %]
+        [% IF post.text -%]
+        <div class="post_text">
+            [%- USE MultiMarkdown -%]
+            [%- FILTER multimarkdown -%]
+            [% post.text %]
+            [%- END -%]
+        </div>
+        [%- END -%]
+        [% FOR img IN post.imgs %]
+        <div class="image">
+            <a href="[% config.imgsurl %]/[% img %]-o.jpg">
+                <img src="[% config.imgsurl %]/[% img %]-l.jpg" alt="[% imgs.$img.name %]" />
+            </a>
+        </div>
+        [% END %]
+
+        <div class="foot_link"><a href="http://photos.boklm.eu/">photos.boklm.eu</a></div>
+    </body>
+</html>
