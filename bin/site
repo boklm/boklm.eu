@@ -25,6 +25,8 @@ my %default_config = (
         uname => 'root',
         gname => 'root',
     },
+    tar_files => {
+    },
 );
 
 my $in_posts = path($config{in_posts});
@@ -222,6 +224,7 @@ sub download {
 sub mktar {
     shift;
     my @plst = @_;
+    my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}) });
     download('download', @plst);
     for my $post (@plst) {
         my $tarfile = "$config{out_imgs}/$post.tar";
@@ -236,6 +239,20 @@ sub mktar {
             my $content = read_file($imgin);
             $tar->add_data($imgdst, $content, $tar_opts);
             $i++;
+        }
+        my $tar_files = getoption([$posts{$post}], 'tar_files');
+        my $tar_opts = getoption([$posts{$post}], 'tar_options');
+        my $vars = {
+            config  => \%config,
+            post    => $posts{$post},
+            post_id => $post,
+            imgs    => \%imgs,
+        };
+        for my $tf (keys %{$tar_files}) {
+            my $content;
+            $template->process($tar_files->{$tf}, $vars, \$content)
+                || die $template->error;
+            $tar->add_data("$post/$tf", $content, $tar_opts);
         }
         $tar->write($tarfile);
         print "OK\n";
