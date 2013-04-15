@@ -12,3 +12,6 @@ tmpl: photos.boklm.eu/tmpl
 sitename: photos.boklm.eu
 siteurl: http://photos.boklm.eu
 imgsurl: http://im.boklm.eu
+tar_options:
+   uname: boklm
+   gname: boklm

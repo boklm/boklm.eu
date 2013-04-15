@@ -20,6 +20,13 @@ sub path {
 my $config_file = "$dname/../conf/$bname";
 my %config = %{LoadFile($config_file)};
 
+my %default_config = (
+    tar_options => {
+        uname => 'root',
+        gname => 'root',
+    },
+);
+
 my $in_posts = path($config{in_posts});
 my $in_imgs = path($config{in_imgs});
 
@@ -32,6 +39,15 @@ my %source_ext = (
     Original => '-o.jpg',
     Small    => '-s.jpg',
 );
+
+sub getoption {
+    my ($confs, $key) = @_;
+    for my $conf (@{$confs}) {
+        return $conf->{$key} if exists $conf->{$key};
+    }
+    $config{$key} ? $config{$key} :
+    $default_config{$key};
+}
 
 my $flickrconfig;
 sub flickrconfig {
@@ -207,10 +223,6 @@ sub mktar {
     shift;
     my @plst = @_;
     download('download', @plst);
-    my $tar_opts = {
-        uname => 'root',
-        gname => 'root',
-    };
     for my $post (@plst) {
         my $tarfile = "$config{out_imgs}/$post.tar";
         next if -f $tarfile;
@@ -218,6 +230,7 @@ sub mktar {
         my $tar = Archive::Tar->new();
         my $i = 0;
         for my $img (@{$posts{$post}->{imgs}}) {
+            my $tar_opts = getoption([$imgs{$img}, $posts{$post}], 'tar_options');
             my $imgin = "$config{out_imgs}/$img$source_ext{Original}";
             my $imgdst = sprintf '%s/%.3d-%s.jpg', $post, $i, $img;
             my $content = read_file($imgin);
