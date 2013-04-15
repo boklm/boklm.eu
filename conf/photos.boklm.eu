@@ -15,3 +15,6 @@ imgsurl: http://im.boklm.eu
 tar_options:
    uname: boklm
    gname: boklm
+tar_files:
+   README: tar_README
+   LICENSE: tar_LICENSE

@@ -1,0 +1,6 @@
+[%- USE date -%]
+[% date.format(post.pubtime, format => '%a, %d %b %Y %H:%M:%S', gmt => 1) %] GMT
+
+[% config.siteurl %]/[% post_id %].html
+
+All photos are public domain. See LICENSE file.
