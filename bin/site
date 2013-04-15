@@ -7,6 +7,8 @@ use YAML qw/LoadFile DumpFile/;
 use Template;
 use Cwd qw/realpath/;
 use LWP::Simple;
+use Archive::Tar;
+use File::Slurp;
 use Data::Dump qw/dump/;
 
 my $dname = dirname($0);
@@ -201,6 +203,32 @@ sub download {
     }
 }
 
+sub mktar {
+    shift;
+    my @plst = @_;
+    download('download', @plst);
+    my $tar_opts = {
+        uname => 'root',
+        gname => 'root',
+    };
+    for my $post (@plst) {
+        my $tarfile = "$config{out_imgs}/$post.tar";
+        next if -f $tarfile;
+        print "Creating $post.tar: ";
+        my $tar = Archive::Tar->new();
+        my $i = 0;
+        for my $img (@{$posts{$post}->{imgs}}) {
+            my $imgin = "$config{out_imgs}/$img$source_ext{Original}";
+            my $imgdst = sprintf '%s/%.3d-%s.jpg', $post, $i, $img;
+            my $content = read_file($imgin);
+            $tar->add_data($imgdst, $content, $tar_opts);
+            $i++;
+        }
+        $tar->write($tarfile);
+        print "OK\n";
+    }
+}
+
 sub flickrphoto {
     my ($photoid) = @_;
     print "Loading metadata for photo $photoid from flickr\n";
@@ -315,6 +343,7 @@ my %actions = (
     mkpost   => \&mkpost,
     mkindex  => \&mkindex,
     mktag    => \&mktag,
+    mktar    => \&mktar,
     mkall    => \&mkall,
     download => \&download,
     newpost  => \&newpost,
