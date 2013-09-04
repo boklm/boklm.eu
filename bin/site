@@ -113,7 +113,8 @@ sub processtemplate {
     my ($template, $input, $vars, $output) = @_;
     for my $format (@{$config{out_formats}}) {
         next unless -f join '/', path($config{tmpl}), "$input.$format";
-        $template->process("$input.$format", $vars, "$output.$format")
+        $template->process("$input.$format", $vars, "$output.$format",
+                                binmode => ':utf8')
                 || die $template->error;
     }
 }
