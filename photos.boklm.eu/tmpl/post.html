@@ -20,7 +20,7 @@
         [% FOR img IN post.imgs %]
         <div class="image">
             <a href="[% config.imgsurl %]/[% img %]-o.jpg">
-                <img src="[% config.imgsurl %]/[% img %]-l.jpg" alt="[% imgs.$img.name %]" />
+                <img src="[% config.imgsurl %]/[% img %]-l.jpg" alt="[% FILTER html %][% imgs.$img.name %][% END %]" />
             </a>
         </div>
         [% END %]
