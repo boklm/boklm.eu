@@ -1,0 +1,25 @@
+[%- USE date -%]
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <title>[% config.sitename %]: [% tagname %]</title>
+        <link rel="stylesheet" href="../css/site.css" type="text/css" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="author" content="Nicolas Vigier (boklm)" />
+    </head>
+    <body id='global'>
+        [% INCLUDE pagetop.html %]
+        <h2>[% tagname %]</h2>
+
+        <div id="index">
+            [% FOR postname IN tags.$tagname %]
+            [% post = posts.$postname %]
+            <p>
+                <div class='index_date'>[% date.format(post.pubtime, format => '%Y/%m/%d %H:%M:%S', gmt => 1) %] UTC</div>
+                <div class='index_title'><a href="../[% post.name %].html">[% post.summary %]</a></div>
+            </p>
+            [% END %]
+        </div>
+    </body>
+</html>

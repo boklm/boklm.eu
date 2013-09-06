@@ -1,0 +1,20 @@
+flickrconfig: ~/.flickrconfig
+flickr_privacyfilter: 1
+out_formats:
+ - html
+ - rss
+out_pages: txt.boklm.eu/out/html
+out_tags: txt.boklm.eu/out/html/t
+out_imgs: photos.boklm.eu/out/imgs
+in_posts: txt.boklm.eu/posts
+in_imgs: photos.boklm.eu/imgs
+tmpl: txt.boklm.eu/tmpl
+sitename: txt.boklm.eu
+siteurl: http://txt.boklm.eu
+imgsurl: http://im.boklm.eu
+tar_options:
+   uname: boklm
+   gname: boklm
+tar_files:
+   README: tar_README
+   LICENSE: tar_LICENSE

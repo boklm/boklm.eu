@@ -1,0 +1,28 @@
+[% USE date -%]
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <title>[% post.summary %]</title>
+        <link rel="stylesheet" href="css/site.css" type="text/css" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="author" content="Nicolas Vigier (boklm)" />
+    </head>
+    <body id='global'>
+        [% INCLUDE pagetop.html %]
+        <div id='post_content'>
+            <div id='post_title'>[% post.summary %]</div>
+            <div id='post_date'>[% date.format(post.pubtime, format => '%Y/%m/%d %H:%M:%S', gmt => 1) %] UTC</div>
+            <div class="post_text">
+                [%- USE MultiMarkdown -%]
+                [%- FILTER multimarkdown -%]
+                [%- FILTER $img_f -%]
+                [%- post.text -%]
+                [%- END -%]
+                [%- END -%]
+            </div>
+        </div>
+
+        <div class="foot_link"><a href="http://txt.boklm.eu/">txt.boklm.eu</a></div>
+    </body>
+</html>
