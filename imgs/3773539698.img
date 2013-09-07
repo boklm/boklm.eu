@@ -1,6 +1,8 @@
 ---
+name: ~
 sources:
   Large: http://farm3.staticflickr.com/2557/3773539698_b6cf5daaa0_b.jpg
   Medium: http://farm3.staticflickr.com/2557/3773539698_b6cf5daaa0.jpg
   Original: http://farm3.staticflickr.com/2557/3773539698_3d48ea3715_o.jpg
   Small: http://farm3.staticflickr.com/2557/3773539698_b6cf5daaa0_m.jpg
+  Square: http://farm3.staticflickr.com/2557/3773539698_b6cf5daaa0_s.jpg
