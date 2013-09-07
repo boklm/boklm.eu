@@ -1,3 +1,13 @@
+[%- USE JSON ( pretty => 1 ) -%]
+[%-
+  jsimgs = [];
+  FOR img IN post.imgs;
+        n = {};
+        n.id = img;
+        n.name = imgs.$img.name;
+        jsimgs.push(n);
+  END;
+-%]
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
@@ -6,6 +16,40 @@
         <link rel="stylesheet" href="css/site.css" type="text/css" />
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
         <meta name="author" content="Nicolas Vigier (boklm)" />
+        <script type="text/javascript">
+            var imgs = [% jsimgs.json %];
+            function update_imgs(size) {
+                var out = '';
+                for (var i = 0; i < imgs.length; i++) {
+                    out += '<div class="img_' + size + '">';
+                    out += '<a href="[% config.imgsurl %]/' + imgs[i].id + '-o.jpg">';
+                    out += '<img src="[% config.imgsurl %]/' + imgs[i].id
+                        + '-' + size + '.jpg" alt="' + imgs[i].name + '" />';
+                    out += '</a></div>';
+                }
+                document.getElementById("post_images").innerHTML = out;
+            }
+
+            function update_size(size) {
+                update_imgs(size);
+                document.cookie= 'imgsize=' + size;
+            }
+
+            function default_size() {
+                var c = document.cookie;
+                var c_start = c.indexOf('; imgsize=');
+                if (c_start != -1) {
+                    c_start = c.indexOf('=', c_start) + 1;
+                    return c.substring(c_start, c_start + 1);
+                }
+                c_start = c.indexOf('imgsize=');
+                if (c_start != -1) {
+                    c_start = c.indexOf('=', c_start) + 1;
+                    return c.substring(c_start, c_start + 1);
+                }
+                return 'l';
+            }
+        </script>
     </head>
     <body>
         [% INCLUDE pagetop.html %]
@@ -17,13 +61,23 @@
             [%- END -%]
         </div>
         [%- END -%]
-        [% FOR img IN post.imgs %]
-        <div class="image">
-            <a href="[% config.imgsurl %]/[% img %]-o.jpg">
-                <img src="[% config.imgsurl %]/[% img %]-l.jpg" alt="[% FILTER html %][% imgs.$img.name %][% END %]" />
-            </a>
+        <div id="imgsize_form">
+            Size<br />
+            <form name="imgsize_form">
+                -
+                <input type="radio" name="r_size" id="r_size_s" value="s" onchange="update_size('s');" />
+                <input type="radio" name="r_size" id="r_size_m" value="m" onchange="update_size('m');" />
+                <input type="radio" name="r_size" id="r_size_l" value="l" onchange="update_size('l');" checked />
+                +
+            </form>
         </div>
-        [% END %]
+        <div id="post_images">
+        </div>
+        <script type="text/javascript">
+            var d = default_size();
+            update_imgs(d);
+            document.getElementById('r_size_' + d).checked = true;
+        </script>
 
         <div class="foot_link"><a href="http://photos.boklm.eu/">photos.boklm.eu</a></div>
     </body>
