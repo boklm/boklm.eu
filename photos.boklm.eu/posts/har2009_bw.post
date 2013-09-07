@@ -27,3 +27,7 @@ imgs:
 name: har2009_bw
 pubtime: 1251590334
 summary: HAR2009
+tags:
+ - events
+ - night
+ - bw
