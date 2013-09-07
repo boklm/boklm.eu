@@ -1,3 +1,27 @@
+[%- USE date -%]
+[%- USE JSON ( pretty => 1 ) -%]
+[%-
+  SET jsposts   = [];
+  SET tags_lst  = [];
+  SET years_lst = [];
+  FOREACH post IN oposts;
+        IF ! post.noindex;
+                p = {};
+                p.summary = post.summary;
+                p.img = post.img;
+                p.name = post.name;
+                p.tags = post.tags;
+                p.date = date.format(post.pubtime,
+                                     format => '%Y/%m/%d %H:%M:%S', gmt => 1);
+                p.year = date.format(post.pubtime, format => '%Y', gmt => 1);
+                jsposts.push(p);
+                years_lst.push(p.year);
+                FOREACH tag IN post.tags;
+                        tags_lst.push(tag);
+                END;
+        END;
+  END;
+-%]
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
@@ -7,9 +31,70 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
         <meta name="author" content="Nicolas Vigier (boklm)" />
         <link rel="alternate" type="application/rss+xml" title="RSS" href="[% config.siteurl %]/index.rss" />
+        <script type="text/javascript">
+            var posts = [% jsposts.json %];
+
+            function img_title(n) {
+                var out = '';
+                out += '<div class="index_image">';
+                out += '<a href="' + posts[n].name + '.html">';
+                out += '<img src="[% config.imgsurl %]/' + posts[n].img
+                    + '-s.jpg" alt="' + posts[n].summary + '" />';
+                out += '</a></div>';
+                return out;
+            }
+
+            function txt_title(n) {
+                var out = '';
+                out += '<div class="index_post">';
+                out += '<span class="index_title"><a href="' + posts[n].name
+                    + '.html"><img class="index_square_img" src="[% config.imgsurl %]/' + posts[n].img
+                    + '-t.jpg" alt="' + posts[n].summary + '" />'
+                    + posts[n].summary + '</a></span>';
+                out += '<span class="index_date">' + posts[n].date + ' UTC</span>';
+                out += '</div>';
+                return out;
+            }
+
+            function update_posts() {
+                var out = '';
+                var post_title = document.getElementById('r_disp_img').checked
+                        ? img_title : txt_title;
+                var tag_index = document.getElementById('sel_tag').selectedIndex;
+                var tag = document.getElementById('sel_tag').options[tag_index].text;
+                var year_index = document.getElementById('sel_year').selectedIndex;
+                var year = document.getElementById('sel_year').options[year_index].text;
+                for (var i = 0; i < posts.length; i++) {
+                    if (tag != 'all' && posts[i].tags.indexOf(tag) == -1)
+                        continue;
+                    if (year != 'all' && posts[i].year != year)
+                        continue;
+                    out += post_title(i);
+                }
+                document.getElementById("index").innerHTML = out;
+            }
+        </script>
     </head>
     <body>
         [% INCLUDE pagetop.html %]
+        <div id="display_form">
+            <form name="disp_form">
+                <input type="radio" name="r_disp" id="r_disp_img" value="images" onchange="update_posts();" checked />
+                <input type="radio" name="r_disp" id="r_disp_txt" value="text" onchange="update_posts();" />
+                <select id="sel_tag" onchange="update_posts();">
+                    <option>all</option>
+                    [%- FOREACH tag IN tags_lst.unique.sort %]
+                    <option>[% tag %]</option>
+                    [%- END %]
+                </select>
+                <select id="sel_year" onchange="update_posts();">
+                    <option>all</option>
+                    [%- FOREACH year IN years_lst.unique.sort.reverse %]
+                    <option>[% year %]</option>
+                    [%- END -%]
+                </select>
+            </form>
+        </div>
         <div id="index">
             [% FOR post IN oposts %]
             [% IF ! post.noindex -%]
