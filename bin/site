@@ -80,6 +80,10 @@ sub loadpost {
     my ($postname) = @_;
     return if exists $posts{$postname};
     $posts{$postname} = LoadFile("$in_posts/$postname.post");
+    if (!$posts{$postname}->{pubtime}) {
+        delete $posts{$postname};
+        return;
+    }
     print "Loaded $postname\n";
     for my $img (@{$posts{$postname}->{imgs}}) {
         loadimage($img);
@@ -182,6 +186,7 @@ sub mkpost {
             $post =~ s|^$in/(.*)\.post$|$1|;
         }
         loadpost($post);
+        next unless $posts{$post};
         my $vars = {
             config => \%config,
             post   =>  $posts{$post},
