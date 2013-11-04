@@ -387,6 +387,7 @@ sub newpost {
     $post{tags} = [];
     $post{pubtime} = time;
     $post{noindex} = 0;
+    $post{summary} //= 'Post summary';
     DumpFile($postfile, \%post);
     system('editor', $postfile);
 }
