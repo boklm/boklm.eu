@@ -22,12 +22,19 @@
             <category>[% tag %]</category>
             [% END %]
             <description>
-                [%- USE MultiMarkdown -%]
                 [%- FILTER html -%]
-                [%- FILTER multimarkdown -%]
-                [%- FILTER $img_f -%]
-                [%- post.text -%]
+                [%- IF post.text -%]
+                        [%- USE MultiMarkdown -%]
+                        [%- FILTER multimarkdown -%]
+                                [%- FILTER $img_f -%]
+                                        [%- post.text -%]
+                                [%- END -%]
+                        [%- END -%]
                 [%- END -%]
+                [%- FILTER $img_f -%]
+                        [%- IF post.content -%]
+                                [%- post.content -%]
+                        [%- END -%]
                 [%- END -%]
                 [%- END -%]
             </description>

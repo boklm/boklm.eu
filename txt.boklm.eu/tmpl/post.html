@@ -14,11 +14,18 @@
             <div id='post_title'>[% post.summary %]</div>
             <div id='post_date'>[% date.format(post.pubtime, format => '%Y/%m/%d %H:%M:%S', gmt => 1) %] UTC</div>
             <div class="post_text">
-                [%- USE MultiMarkdown -%]
-                [%- FILTER multimarkdown -%]
-                [%- FILTER $img_f -%]
-                [%- post.text -%]
+                [%- IF post.text -%]
+                        [%- USE MultiMarkdown -%]
+                        [%- FILTER multimarkdown -%]
+                                [%- FILTER $img_f -%]
+                                        [%- post.text -%]
+                                [%- END -%]
+                        [%- END -%]
                 [%- END -%]
+                [%- FILTER $img_f -%]
+                        [%- IF post.content -%]
+                                [%- post.content -%]
+                        [%- END -%]
                 [%- END -%]
             </div>
         </div>

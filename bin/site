@@ -9,6 +9,7 @@ use Cwd qw/realpath/;
 use LWP::Simple;
 use Archive::Tar;
 use File::Slurp;
+use File::Temp;
 use Data::Dump qw/dump/;
 
 my $dname = dirname($0);
@@ -79,7 +80,10 @@ sub loadimage {
 sub loadpost {
     my ($postname) = @_;
     return if exists $posts{$postname};
-    $posts{$postname} = LoadFile("$in_posts/$postname.post");
+    my @post_data = LoadFile("$in_posts/$postname.post");
+    $posts{$postname} = $post_data[0];
+    $posts{$postname}->{content} = asciidoc_content($postname, $post_data[1])
+                if $post_data[1];
     if (!$posts{$postname}->{pubtime}) {
         delete $posts{$postname};
         return;
@@ -131,6 +135,7 @@ sub img_filter {
     my ($format) = @_;
     return sub {
         my ($text) = @_;
+        return "" unless $text;
         my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}), });
         my $res;
         for my $line (split /^/, $text) {
@@ -169,6 +174,15 @@ sub mkindex {
         imgs   => \%imgs,
     };
     processtemplate($template, 'index', $vars, 'index');
+}
+
+sub asciidoc_content {
+    my ($post, $content) = @_;
+    my $tmpdir = File::Temp->newdir;
+    write_file("$tmpdir/content.asc", $content);
+    system('asciidoc', '-f', path($config{asciidoc_conf}), '-b', 'html4',
+        "$tmpdir/content.asc");
+    return read_file("$tmpdir/content.html");
 }
 
 sub mkpost {

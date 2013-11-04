@@ -3,6 +3,7 @@ flickr_privacyfilter: 1
 out_formats:
  - html
  - rss
+asciidoc_conf: conf/asciidoc/asciidoc.conf
 out_pages: photos.boklm.eu/out/html
 out_tags: photos.boklm.eu/out/html/t
 out_imgs: photos.boklm.eu/out/imgs
