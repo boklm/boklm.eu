@@ -313,7 +313,9 @@ sub flickrphoto {
     my %infos;
     my $flickrapi = new Flickr::API({
             'key'    => flickrconfig()->{key},
-            'secret' => flickrconfig()->{secret}
+            'secret' => flickrconfig()->{secret},
+            'rest_uri' => 'https://api.flickr.com/services/rest/',
+            'auth_uri' => 'https://api.flickr.com/services/auth/',
         });
     my $resp = $flickrapi->execute_method('flickr.photos.getInfo', {
             auth_token => flickrconfig()->{auth_token},
@@ -356,7 +358,9 @@ sub flickrset {
     my %infos = ( flickrset => $setid );
     my $flickrapi = new Flickr::API({
             'key'    => flickrconfig()->{key},
-            'secret' => flickrconfig()->{secret}
+            'secret' => flickrconfig()->{secret},
+            'rest_uri' => 'https://api.flickr.com/services/rest/',
+            'auth_uri' => 'https://api.flickr.com/services/auth/',
         });
     my $resp = $flickrapi->execute_method('flickr.photosets.getInfo', {
             auth_token  => flickrconfig()->{auth_token},
