@@ -263,10 +263,7 @@ sub download {
             my $r = $ua->get($url);
             die "failed to download $url:\n", $r->status_line, "\n"
                         unless $r->is_success;
-            my $content = $r->decoded_content;
-            open(my $fh, '>', $imgfile);
-            print $fh $content;
-            close $fh;
+            write_file($imgfile, $r->decoded_content);
             print "OK\n";
         }
     }
