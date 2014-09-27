@@ -3,7 +3,7 @@
 use strict;
 use Flickr::API;
 use File::Basename;
-use YAML qw/LoadFile DumpFile/;
+use YAML::Syck qw/LoadFile DumpFile/;
 use Template;
 use Cwd qw/realpath/;
 use LWP;
