@@ -6,7 +6,7 @@ use File::Basename;
 use YAML qw/LoadFile DumpFile/;
 use Template;
 use Cwd qw/realpath/;
-use LWP::Simple;
+use LWP;
 use Archive::Tar;
 use File::Slurp;
 use File::Temp;
@@ -253,14 +253,17 @@ sub download {
     local $| = 1;
     shift;
     loadthings(@_ ? @_ : glob "$in_posts/*.post");
+    my $ua = LWP::UserAgent->new;
     for my $imgid (keys %imgs) {
         for my $src (keys %{$imgs{$imgid}->{sources}}) {
             next if $imgs{$imgid}->{local}->{$src};
             my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
             my $url = $imgs{$imgid}->{sources}->{$src};
             print "Downloading $imgid$source_ext{$src}: ";
-            my $content = get($url);
-            die "failed to download $url" unless defined $content;
+            my $r = $ua->get($url);
+            die "failed to download $url:\n", $r->status_line, "\n"
+                        unless $r->is_success;
+            my $content = $r->decoded_content;
             open(my $fh, '>', $imgfile);
             print $fh $content;
             close $fh;
