@@ -1,0 +1,8 @@
+--- 
+name: Dogs
+sources: 
+  Large: https://farm1.staticflickr.com/635/22942756054_2946a839c1_b.jpg
+  Medium: https://farm1.staticflickr.com/635/22942756054_2946a839c1.jpg
+  Original: https://farm1.staticflickr.com/635/22942756054_f4c977afa7_o.jpg
+  Small: https://farm1.staticflickr.com/635/22942756054_2946a839c1_m.jpg
+  Square: https://farm1.staticflickr.com/635/22942756054_2946a839c1_s.jpg
