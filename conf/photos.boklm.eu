@@ -11,8 +11,8 @@ in_posts: photos.boklm.eu/posts
 in_imgs: imgs
 tmpl: photos.boklm.eu/tmpl
 sitename: photos.boklm.eu
-siteurl: http://photos.boklm.eu
-imgsurl: http://im.boklm.eu
+siteurl: https://photos.boklm.eu
+imgsurl: https://im.boklm.eu
 tar_options:
    uname: boklm
    gname: boklm
