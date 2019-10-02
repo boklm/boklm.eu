@@ -55,10 +55,7 @@
         [% INCLUDE pagetop.html %]
         [% IF post.text -%]
         <div class="post_text">
-            [%- USE MultiMarkdown -%]
-            [%- FILTER multimarkdown -%]
-            [% post.text %]
-            [%- END -%]
+            [% markdown(post.text) %]
         </div>
         [%- END -%]
         <div id="imgsize_form">
