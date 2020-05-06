@@ -13,6 +13,8 @@ use File::Temp;
 use Text::MultiMarkdown qw/markdown/;
 use Data::Dump qw/dump/;
 
+$YAML::Syck::ImplicitUnicode = 1;
+
 my $dname = dirname($0);
 my $bname = basename($0);
 
