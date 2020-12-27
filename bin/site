@@ -47,6 +47,12 @@ my %source_ext = (
     Square   => '-t.jpg',
 );
 
+sub exit_error {
+    my ($msg) = @_;
+    print STDERR "$msg\n";
+    exit 1;
+}
+
 sub getoption {
     my ($confs, $key) = @_;
     for my $conf (@{$confs}) {
@@ -426,6 +432,22 @@ sub test {
     dump $set;
 }
 
+# Download a flickr set to local directory, using specified file prefix
+sub download_flickr_set {
+    my ($act, $flickr_set, $file_prefix) = @_;
+    exit_error("usage: download_flickr_set <flickr-set> <file-prefix>")
+        unless @_ == 3;
+    my $set = flickrset($flickr_set);
+    my $i = 1;
+    for my $img (@{$set->{imgs}}) {
+        my $photo = flickrphoto($img);
+        my $url = $photo->{sources}{Original};
+        my $output_filename = sprintf("%s-%05d-%s.jpg", $file_prefix, $i++, $img);
+        exit_error("Error downloading $url")
+           unless system('wget', '-O', $output_filename, '--', $url) == 0;
+    }
+}
+
 my %actions = (
     mkpost   => \&mkpost,
     mkindex  => \&mkindex,
@@ -436,6 +458,7 @@ my %actions = (
     newpost  => \&newpost,
     newset   => \&newpost,
     test     => \&test,
+    download_flickr_set => \&download_flickr_set,
 );
 
 if (@ARGV == 0) {
