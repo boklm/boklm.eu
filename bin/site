@@ -78,12 +78,14 @@ sub loadimage {
         $imgs{$imgid} = LoadFile($filename);
     } else {
         $imgs{$imgid} = flickrphoto($imgid);
+        return undef unless $imgs{$imgid};
         DumpFile($filename, $imgs{$imgid});
     }
     for my $src (keys %{$imgs{$imgid}->{sources}}) {
         my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
         $imgs{$imgid}->{local}->{$src} = -f $imgfile;
     }
+    return 1;
 }
 
 sub loadpost {
@@ -340,6 +342,16 @@ sub flickrphoto {
                         return;
                     }
                 }
+                if ($o->{name} eq 'tags') {
+                    for my $t (@{$o->{children}}) {
+                        if (defined $t->{name} and $t->{name} eq 'tag') {
+                            if ($t->{children}[0]->{content} eq 'skip') {
+                               print "Skipping $photoid (skip tag)\n";
+                               return;
+                            }
+                        }
+                    }
+                }
                 if ($o->{name} eq 'title') {
                     $infos{name} = $o->{children}[0]->{content};
                 }
@@ -396,6 +408,7 @@ sub flickrset {
         next unless (exists $n->{name} and $n->{name} eq 'photoset');
         for my $z (@{$n->{children}}) {
             next unless exists $z->{name} and $z->{name} eq 'photo';
+            next unless loadimage($z->{attributes}->{id});
             push @{$infos{imgs}}, $z->{attributes}->{id};
         }
     }
@@ -441,6 +454,7 @@ sub download_flickr_set {
     my $i = 1;
     for my $img (@{$set->{imgs}}) {
         my $photo = flickrphoto($img);
+        next unless $photo;
         my $url = $photo->{sources}{Original};
         my $output_filename = sprintf("%s-%05d-%s.jpg", $file_prefix, $i++, $img);
         exit_error("Error downloading $url")
