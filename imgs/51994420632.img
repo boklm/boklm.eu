@@ -1,0 +1,8 @@
+--- 
+name: Fake
+sources: 
+  Large: https://live.staticflickr.com/65535/51994420632_343cc984bd_b.jpg
+  Medium: https://live.staticflickr.com/65535/51994420632_343cc984bd.jpg
+  Original: https://live.staticflickr.com/65535/51994420632_d76e0a1cff_o.jpg
+  Small: https://live.staticflickr.com/65535/51994420632_343cc984bd_m.jpg
+  Square: https://live.staticflickr.com/65535/51994420632_343cc984bd_s.jpg
