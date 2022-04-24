@@ -1,0 +1,8 @@
+--- 
+name: Train
+sources: 
+  Large: https://live.staticflickr.com/7890/32998735758_a7f21a0561_b.jpg
+  Medium: https://live.staticflickr.com/7890/32998735758_a7f21a0561.jpg
+  Original: https://live.staticflickr.com/7890/32998735758_1b44374466_o.jpg
+  Small: https://live.staticflickr.com/7890/32998735758_a7f21a0561_m.jpg
+  Square: https://live.staticflickr.com/7890/32998735758_a7f21a0561_s.jpg
