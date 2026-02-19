@@ -1,2 +1,8 @@
 --- 
 name: Maison
+sources: 
+  Large: https://live.staticflickr.com/5134/5400577995_121abbd8ec_b.jpg
+  Medium: https://live.staticflickr.com/5134/5400577995_121abbd8ec.jpg
+  Original: https://live.staticflickr.com/5134/5400577995_0ae7934899_o.jpg
+  Small: https://live.staticflickr.com/5134/5400577995_121abbd8ec_m.jpg
+  Square: https://live.staticflickr.com/5134/5400577995_121abbd8ec_s.jpg

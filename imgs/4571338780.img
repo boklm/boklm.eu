@@ -1,2 +1,8 @@
----
+--- 
 name: Vandellos Nuclear Power Plant
+sources: 
+  Large: https://live.staticflickr.com/4053/4571338780_db84206224_b.jpg
+  Medium: https://live.staticflickr.com/4053/4571338780_db84206224.jpg
+  Original: https://live.staticflickr.com/4053/4571338780_8ea4697127_o.jpg
+  Small: https://live.staticflickr.com/4053/4571338780_db84206224_m.jpg
+  Square: https://live.staticflickr.com/4053/4571338780_db84206224_s.jpg
