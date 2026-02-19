@@ -1,2 +1,8 @@
 --- 
 name: .
+sources: 
+  Large: https://live.staticflickr.com/65535/55008333451_0c64134b83_b.jpg
+  Medium: https://live.staticflickr.com/65535/55008333451_0c64134b83.jpg
+  Original: https://live.staticflickr.com/65535/55008333451_3e2fc8110e_o.jpg
+  Small: https://live.staticflickr.com/65535/55008333451_0c64134b83_m.jpg
+  Square: https://live.staticflickr.com/65535/55008333451_0c64134b83_s.jpg
