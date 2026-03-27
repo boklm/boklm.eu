@@ -17,18 +17,18 @@ my $dname = dirname($0);
 my $bname = basename($0);
 
 sub path {
-    ( $_[0] =~ m|^/| ) ? $_[0] : "$dname/../$_[0]";
+  ( $_[0] =~ m|^/| ) ? $_[0] : "$dname/../$_[0]";
 }
 my $config_file = "$dname/../conf/$bname";
 my %config = %{LoadFile($config_file)};
 
 my %default_config = (
-    tar_options => {
-        uname => 'root',
-        gname => 'root',
-    },
-    tar_files => {
-    },
+  tar_options => {
+    uname => 'root',
+    gname => 'root',
+  },
+  tar_files => {
+  },
 );
 
 my $in_posts = path($config{in_posts});
@@ -38,448 +38,447 @@ my %posts;
 my %imgs;
 
 my %source_ext = (
-    Large    => '-l.jpg',
-    Medium   => '-m.jpg',
-    Original => '-o.jpg',
-    Small    => '-s.jpg',
-    Square   => '-t.jpg',
+  Large    => '-l.jpg',
+  Medium   => '-m.jpg',
+  Original => '-o.jpg',
+  Small    => '-s.jpg',
+  Square   => '-t.jpg',
 );
 
 sub exit_error {
-    my ($msg) = @_;
-    print STDERR "$msg\n";
-    exit 1;
+  my ($msg) = @_;
+  print STDERR "$msg\n";
+  exit 1;
 }
 
 sub getoption {
-    my ($confs, $key) = @_;
-    for my $conf (@{$confs}) {
-        return $conf->{$key} if exists $conf->{$key};
-    }
-    $config{$key} ? $config{$key} :
-    $default_config{$key};
+  my ($confs, $key) = @_;
+  for my $conf (@{$confs}) {
+    return $conf->{$key} if exists $conf->{$key};
+  }
+  $config{$key} ? $config{$key} :
+  $default_config{$key};
 }
 
 my $flickrconfig;
 sub flickrconfig {
-    return $flickrconfig if $flickrconfig;
-    my $configfile = $config{flickrconfig};
-    $configfile =~ s|^~/|$ENV{HOME}/|;
-    return $flickrconfig = LoadFile($configfile);
+  return $flickrconfig if $flickrconfig;
+  my $configfile = $config{flickrconfig};
+  $configfile =~ s|^~/|$ENV{HOME}/|;
+  return $flickrconfig = LoadFile($configfile);
 }
 
 sub loadimage {
-    my ($imgid) = @_;
-    return if exists $imgs{$imgid};
-    my $filename = "$in_imgs/$imgid.img";
-    if ( -f $filename) {
-        $imgs{$imgid} = LoadFile($filename);
-    } else {
-        $imgs{$imgid} = flickrphoto($imgid);
-        return undef unless $imgs{$imgid};
-        DumpFile($filename, $imgs{$imgid});
-    }
-    for my $src (keys %{$imgs{$imgid}->{sources}}) {
-        my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
-        $imgs{$imgid}->{local}->{$src} = -f $imgfile;
-    }
-    return 1;
+  my ($imgid) = @_;
+  return if exists $imgs{$imgid};
+  my $filename = "$in_imgs/$imgid.img";
+  if ( -f $filename) {
+    $imgs{$imgid} = LoadFile($filename);
+  } else {
+    $imgs{$imgid} = flickrphoto($imgid);
+    return undef unless $imgs{$imgid};
+    DumpFile($filename, $imgs{$imgid});
+  }
+  for my $src (keys %{$imgs{$imgid}->{sources}}) {
+    my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
+    $imgs{$imgid}->{local}->{$src} = -f $imgfile;
+  }
+  return 1;
 }
 
 sub loadpost {
-    my ($postname) = @_;
-    return if exists $posts{$postname};
-    my @post_data = LoadFile("$in_posts/$postname.post");
-    $posts{$postname} = $post_data[0];
-    $posts{$postname}->{content} = asciidoc_content($postname, $post_data[1])
-                if $post_data[1];
-    if (!$posts{$postname}->{pubtime}) {
-        delete $posts{$postname};
-        return;
-    }
-    print "Loaded $postname\n";
-    for my $img (@{$posts{$postname}->{imgs}}) {
-        loadimage($img);
-    }
+  my ($postname) = @_;
+  return if exists $posts{$postname};
+  my @post_data = LoadFile("$in_posts/$postname.post");
+  $posts{$postname} = $post_data[0];
+  $posts{$postname}->{content} = asciidoc_content($postname, $post_data[1])
+  if $post_data[1];
+  if (!$posts{$postname}->{pubtime}) {
+    delete $posts{$postname};
+    return;
+  }
+  print "Loaded $postname\n";
+  for my $img (@{$posts{$postname}->{imgs}}) {
+    loadimage($img);
+  }
 }
 
 sub loadthings {
-    my @things = @_;
-    for my $thing (@things) {
-        if (-f "$in_posts/$thing.post") {
-            loadpost($thing);
-        } elsif (-f "$in_imgs/$thing.img") {
-            loadimage($thing);
-        } elsif (-f $thing) {
-            my $path = realpath($thing);
-            my $postsdir = realpath($in_posts);
-            my $imgsdir = realpath($in_imgs);
-            if ($path =~ m|^$postsdir/(.*)\.post$|) {
-                loadpost($1);
-            } elsif ($path =~ m|^$imgsdir/(.*)\.img$|) {
-                loadimage($1);
-            } else {
-                print STDERR "Could not load $thing\n";
-            }
-        } else {
-            print STDERR "Could not load $thing\n";
-        }
+  my @things = @_;
+  for my $thing (@things) {
+    if (-f "$in_posts/$thing.post") {
+      loadpost($thing);
+    } elsif (-f "$in_imgs/$thing.img") {
+      loadimage($thing);
+    } elsif (-f $thing) {
+      my $path = realpath($thing);
+      my $postsdir = realpath($in_posts);
+      my $imgsdir = realpath($in_imgs);
+      if ($path =~ m|^$postsdir/(.*)\.post$|) {
+        loadpost($1);
+      } elsif ($path =~ m|^$imgsdir/(.*)\.img$|) {
+        loadimage($1);
+      } else {
+        print STDERR "Could not load $thing\n";
+      }
+    } else {
+      print STDERR "Could not load $thing\n";
     }
+  }
 }
 
 sub processtemplate {
-    my ($template, $input, $vars, $output) = @_;
-    $vars = { markdown => sub { markdown(@_) }, %$vars };
-    for my $format (@{$config{out_formats}}) {
-        next unless -f join '/', path($config{tmpl}), "$input.$format";
-        my %v = ( %$vars, img_f => sub { img_filter($format) } );
-        $template->process("$input.$format", \%v, "$output.$format",
-                                binmode => ':utf8')
-                || die $template->error;
-    }
+  my ($template, $input, $vars, $output) = @_;
+  $vars = { markdown => sub { markdown(@_) }, %$vars };
+  for my $format (@{$config{out_formats}}) {
+    next unless -f join '/', path($config{tmpl}), "$input.$format";
+    my %v = ( %$vars, img_f => sub { img_filter($format) } );
+    $template->process("$input.$format", \%v, "$output.$format",
+      binmode => ':utf8')
+    || die $template->error;
+  }
 }
 
 # template filter to replace img(number) by the content of template
 # img.$format
 sub img_filter {
-    my ($format) = @_;
-    return sub {
-        my ($text) = @_;
-        return "" unless $text;
-        my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}), });
-        my $res;
-        for my $line (split /^/, $text) {
-            if ($line =~ m/^\s*img\((\d+)\)$/) {
-                my $c;
-                my %vars = (
-                    img => $1,
-                    config => \%config,
-                    imgs   => \%imgs,
-                );
-                $template->process("img.$format", \%vars, \$c);
-                $res .= $c;
-            } else {
-                $res .= $line;
-            }
-        }
-        return $res;
+  my ($format) = @_;
+  return sub {
+    my ($text) = @_;
+    return "" unless $text;
+    my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}), });
+    my $res;
+    for my $line (split /^/, $text) {
+      if ($line =~ m/^\s*img\((\d+)\)$/) {
+        my $c;
+        my %vars = (
+          img => $1,
+          config => \%config,
+          imgs   => \%imgs,
+        );
+        $template->process("img.$format", \%vars, \$c);
+        $res .= $c;
+      } else {
+        $res .= $line;
+      }
     }
+    return $res;
+  }
 }
 
 sub mkindex {
-    my $z;
-    for my $post (glob "$in_posts/*.post") {
-        $post =~ s/$in_posts\/(.*)\.post/$1/;
-        loadpost($post);
-    }
-    my $template = Template->new({
-            INCLUDE_PATH => path($config{tmpl}),
-            OUTPUT_PATH  => path($config{out_pages}),
-        });
-    my @oposts = sort { $b->{pubtime} <=> $a->{pubtime} } values %posts;
-    my $vars = {
-        config => \%config,
-        posts  => \%posts,
-        oposts  => \@oposts,
-        imgs   => \%imgs,
-    };
-    processtemplate($template, 'index', $vars, 'index');
+  my $z;
+  for my $post (glob "$in_posts/*.post") {
+    $post =~ s/$in_posts\/(.*)\.post/$1/;
+    loadpost($post);
+  }
+  my $template = Template->new({
+      INCLUDE_PATH => path($config{tmpl}),
+      OUTPUT_PATH  => path($config{out_pages}),
+    });
+  my @oposts = sort { $b->{pubtime} <=> $a->{pubtime} } values %posts;
+  my $vars = {
+    config => \%config,
+    posts  => \%posts,
+    oposts  => \@oposts,
+    imgs   => \%imgs,
+  };
+  processtemplate($template, 'index', $vars, 'index');
 }
 
 sub asciidoc_content {
-    my ($post, $content) = @_;
-    my $tmpdir = File::Temp->newdir;
-    write_file("$tmpdir/content.asc", $content);
-    system('asciidoc', '-f', path($config{asciidoc_conf}), '-b', 'html4',
-        "$tmpdir/content.asc");
-    return read_file("$tmpdir/content.html");
+  my ($post, $content) = @_;
+  my $tmpdir = File::Temp->newdir;
+  write_file("$tmpdir/content.asc", $content);
+  system('asciidoc', '-f', path($config{asciidoc_conf}), '-b', 'html4',
+    "$tmpdir/content.asc");
+  return read_file("$tmpdir/content.html");
 }
 
 sub mkpost {
-    shift;
-    my $template = Template->new({
-            INCLUDE_PATH => path($config{tmpl}),
-            OUTPUT_PATH  => path($config{out_pages}),
-        });
-    my @posts = @_ ? @_ : glob "$in_posts/*.post";
-    for my $post (@posts) {
-        if (! -f "$in_posts/$post.post") {
-            next unless -f $post;
-            $post = realpath($post);
-            my $in = realpath($in_posts);
-            $post =~ s|^$in/(.*)\.post$|$1|;
-        }
-        loadpost($post);
-        next unless $posts{$post};
-        my $vars = {
-            config => \%config,
-            post   =>  $posts{$post},
-            imgs   => \%imgs,
-        };
-        processtemplate($template, 'post', $vars, $post);
+  shift;
+  my $template = Template->new({
+      INCLUDE_PATH => path($config{tmpl}),
+      OUTPUT_PATH  => path($config{out_pages}),
+    });
+  my @posts = @_ ? @_ : glob "$in_posts/*.post";
+  for my $post (@posts) {
+    if (! -f "$in_posts/$post.post") {
+      next unless -f $post;
+      $post = realpath($post);
+      my $in = realpath($in_posts);
+      $post =~ s|^$in/(.*)\.post$|$1|;
     }
+    loadpost($post);
+    next unless $posts{$post};
+    my $vars = {
+      config => \%config,
+      post   =>  $posts{$post},
+      imgs   => \%imgs,
+    };
+    processtemplate($template, 'post', $vars, $post);
+  }
 }
 
 sub mktag {
-    shift;
-    my @tlist = @_;
-    my %tags;
-    loadthings(glob "$in_posts/*.post");
-    for my $post (keys %posts) {
-        next unless defined $posts{$post}->{tags};
-        for my $tag (@{$posts{$post}->{tags}}) {
-            push @{$tags{$tag}}, $post;
-        }
+  shift;
+  my @tlist = @_;
+  my %tags;
+  loadthings(glob "$in_posts/*.post");
+  for my $post (keys %posts) {
+    next unless defined $posts{$post}->{tags};
+    for my $tag (@{$posts{$post}->{tags}}) {
+      push @{$tags{$tag}}, $post;
     }
-    my $template = Template->new({
-            INCLUDE_PATH => path($config{tmpl}),
-            OUTPUT_PATH  => path($config{out_tags}),
-        });
-    @tlist = keys %tags unless @tlist;
-    for my $tagname (keys %tags) {
-        $tags{$tagname} = [ sort { $posts{$b}->{pubtime} 
-            <=> $posts{$a}->{pubtime} } @{$tags{$tagname}} ];
-    }
-    for my $tagname (@tlist) {
-        my $vars = {
-            config  => \%config,
-            tagname => $tagname,
-            tags    => \%tags,
-            posts   => \%posts,
-            imgs    => \%imgs,
-        };
-        processtemplate($template, 'tag', $vars, $tagname);
-    }
+  }
+  my $template = Template->new({
+      INCLUDE_PATH => path($config{tmpl}),
+      OUTPUT_PATH  => path($config{out_tags}),
+    });
+  @tlist = keys %tags unless @tlist;
+  for my $tagname (keys %tags) {
+    $tags{$tagname} = [ sort { $posts{$b}->{pubtime} 
+        <=> $posts{$a}->{pubtime} } @{$tags{$tagname}} ];
+  }
+  for my $tagname (@tlist) {
     my $vars = {
-        config  => \%config,
-        tags    => \%tags,
-        posts   => \%posts,
-        imgs    => \%imgs,
+      config  => \%config,
+      tagname => $tagname,
+      tags    => \%tags,
+      posts   => \%posts,
+      imgs    => \%imgs,
     };
-    processtemplate($template, 'tagsindex', $vars, 'index');
+    processtemplate($template, 'tag', $vars, $tagname);
+  }
+  my $vars = {
+    config  => \%config,
+    tags    => \%tags,
+    posts   => \%posts,
+    imgs    => \%imgs,
+  };
+  processtemplate($template, 'tagsindex', $vars, 'index');
 }
 
 sub download {
-    local $| = 1;
-    shift;
-    loadthings(@_ ? @_ : glob "$in_posts/*.post");
-    my $ua = LWP::UserAgent->new;
-    for my $imgid (keys %imgs) {
-        for my $src (keys %{$imgs{$imgid}->{sources}}) {
-            next if $imgs{$imgid}->{local}->{$src};
-            my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
-            my $url = $imgs{$imgid}->{sources}->{$src};
-            print "Downloading $imgid$source_ext{$src}: ";
-            my $r = $ua->get($url);
-            die "failed to download $url:\n", $r->status_line, "\n"
-                        unless $r->is_success;
-            write_file($imgfile, $r->decoded_content);
-            print "OK\n";
-        }
+  local $| = 1;
+  shift;
+  loadthings(@_ ? @_ : glob "$in_posts/*.post");
+  my $ua = LWP::UserAgent->new;
+  for my $imgid (keys %imgs) {
+    for my $src (keys %{$imgs{$imgid}->{sources}}) {
+      next if $imgs{$imgid}->{local}->{$src};
+      my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
+      my $url = $imgs{$imgid}->{sources}->{$src};
+      print "Downloading $imgid$source_ext{$src}: ";
+      my $r = $ua->get($url);
+      die "failed to download $url:\n", $r->status_line, "\n"
+      unless $r->is_success;
+      write_file($imgfile, $r->decoded_content);
+      print "OK\n";
     }
+  }
 }
 
 sub mktar {
-    shift;
-    my @plst = @_;
-    my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}) });
-    download('download', @plst);
-    for my $post (@plst) {
-        my $tarfile = "$config{out_imgs}/$post.tar";
-        next if -f $tarfile;
-        print "Creating $post.tar: ";
-        my $tar = Archive::Tar->new();
-        my $i = 0;
-        for my $img (@{$posts{$post}->{imgs}}) {
-            my $tar_opts = getoption([$imgs{$img}, $posts{$post}], 'tar_options');
-            my $imgin = "$config{out_imgs}/$img$source_ext{Original}";
-            my $imgdst = sprintf '%s/%.3d-%s.jpg', $post, $i, $img;
-            my $content = read_file($imgin);
-            $tar->add_data($imgdst, $content, $tar_opts);
-            $i++;
-        }
-        my $tar_files = getoption([$posts{$post}], 'tar_files');
-        my $tar_opts = getoption([$posts{$post}], 'tar_options');
-        my $vars = {
-            config  => \%config,
-            post    => $posts{$post},
-            post_id => $post,
-            imgs    => \%imgs,
-        };
-        for my $tf (keys %{$tar_files}) {
-            my $content;
-            $template->process($tar_files->{$tf}, $vars, \$content)
-                || die $template->error;
-            $tar->add_data("$post/$tf", $content, $tar_opts);
-        }
-        $tar->write($tarfile);
-        print "OK\n";
+  shift;
+  my @plst = @_;
+  my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}) });
+  download('download', @plst);
+  for my $post (@plst) {
+    my $tarfile = "$config{out_imgs}/$post.tar";
+    next if -f $tarfile;
+    print "Creating $post.tar: ";
+    my $tar = Archive::Tar->new();
+    my $i = 0;
+    for my $img (@{$posts{$post}->{imgs}}) {
+      my $tar_opts = getoption([$imgs{$img}, $posts{$post}], 'tar_options');
+      my $imgin = "$config{out_imgs}/$img$source_ext{Original}";
+      my $imgdst = sprintf '%s/%.3d-%s.jpg', $post, $i, $img;
+      my $content = read_file($imgin);
+      $tar->add_data($imgdst, $content, $tar_opts);
+      $i++;
     }
+    my $tar_files = getoption([$posts{$post}], 'tar_files');
+    my $tar_opts = getoption([$posts{$post}], 'tar_options');
+    my $vars = {
+      config  => \%config,
+      post    => $posts{$post},
+      post_id => $post,
+      imgs    => \%imgs,
+    };
+    for my $tf (keys %{$tar_files}) {
+      my $content;
+      $template->process($tar_files->{$tf}, $vars, \$content)
+      || die $template->error;
+      $tar->add_data("$post/$tf", $content, $tar_opts);
+    }
+    $tar->write($tarfile);
+    print "OK\n";
+  }
 }
 
 sub flickrphoto {
-    my ($photoid) = @_;
-    print "Loading metadata for photo $photoid from flickr\n";
-    my %infos;
-    my $flickrapi = new Flickr::API({
-            'key'    => flickrconfig()->{key},
-            'secret' => flickrconfig()->{secret},
-            'rest_uri' => 'https://api.flickr.com/services/rest/',
-            'auth_uri' => 'https://api.flickr.com/services/auth/',
-        });
-    my $resp = $flickrapi->execute_method('flickr.photos.getInfo', {
-            auth_token => flickrconfig()->{auth_token},
-            photo_id   => $photoid,
-        });
-    for my $n (@{$resp->{tree}->{children}}) {
-        if (defined $n->{name} and $n->{name} eq 'photo') {
-            for my $o (@{$n->{children}}) {
-                next unless defined $o->{name};
-                if ($o->{name} eq 'visibility') {
-                    if ($o->{'attributes'}->{'ispublic'} eq '0') {
-                        return;
-                    }
-                }
-                if ($o->{name} eq 'tags') {
-                    for my $t (@{$o->{children}}) {
-                        if (defined $t->{name} and $t->{name} eq 'tag') {
-                            if ($t->{children}[0]->{content} eq 'skip') {
-                               print "Skipping $photoid (skip tag)\n";
-                               return;
-                            }
-                        }
-                    }
-                }
-                if ($o->{name} eq 'title') {
-                    $infos{name} = $o->{children}[0]->{content};
-                }
+  my ($photoid) = @_;
+  print "Loading metadata for photo $photoid from flickr\n";
+  my %infos;
+  my $flickrapi = new Flickr::API({
+      'key'    => flickrconfig()->{key},
+      'secret' => flickrconfig()->{secret},
+      'rest_uri' => 'https://api.flickr.com/services/rest/',
+      'auth_uri' => 'https://api.flickr.com/services/auth/',
+    });
+  my $resp = $flickrapi->execute_method('flickr.photos.getInfo', {
+      auth_token => flickrconfig()->{auth_token},
+      photo_id   => $photoid,
+    });
+  for my $n (@{$resp->{tree}->{children}}) {
+    if (defined $n->{name} and $n->{name} eq 'photo') {
+      for my $o (@{$n->{children}}) {
+        next unless defined $o->{name};
+        if ($o->{name} eq 'visibility') {
+          if ($o->{'attributes'}->{'ispublic'} eq '0') {
+            return;
+          }
+        }
+        if ($o->{name} eq 'tags') {
+          for my $t (@{$o->{children}}) {
+            if (defined $t->{name} and $t->{name} eq 'tag') {
+              if ($t->{children}[0]->{content} eq 'skip') {
+                print "Skipping $photoid (skip tag)\n";
+                return;
+              }
             }
+          }
         }
-    }
-    $resp = $flickrapi->execute_method('flickr.photos.getSizes', {
-            auth_token => flickrconfig()->{auth_token},
-            photo_id   => $photoid,
-        });
-    for my $n (@{$resp->{tree}->{children}}) {
-        next unless (exists $n->{name} and $n->{name} eq 'sizes'); 
-        for my $size (@{$n->{children}}) {
-            next unless exists $size->{name} and $size->{name} eq 'size';
-            next unless exists $size->{attributes};
-            my $label = $size->{attributes}->{label};
-            next unless grep {$_ eq $label} (keys %source_ext);
-            $infos{sources}->{$label} = $size->{attributes}->{source};
+        if ($o->{name} eq 'title') {
+          $infos{name} = $o->{children}[0]->{content};
         }
+      }
     }
-    return \%infos;
+  }
+  $resp = $flickrapi->execute_method('flickr.photos.getSizes', {
+      auth_token => flickrconfig()->{auth_token},
+      photo_id   => $photoid,
+    });
+  for my $n (@{$resp->{tree}->{children}}) {
+    next unless (exists $n->{name} and $n->{name} eq 'sizes'); 
+    for my $size (@{$n->{children}}) {
+      next unless exists $size->{name} and $size->{name} eq 'size';
+      next unless exists $size->{attributes};
+      my $label = $size->{attributes}->{label};
+      next unless grep {$_ eq $label} (keys %source_ext);
+      $infos{sources}->{$label} = $size->{attributes}->{source};
+    }
+  }
+  return \%infos;
 }
 
 sub flickrset {
-    my ($setid) = @_;
-    my %infos = ( flickrset => $setid );
-    my $flickrapi = new Flickr::API({
-            'key'    => flickrconfig()->{key},
-            'secret' => flickrconfig()->{secret},
-            'rest_uri' => 'https://api.flickr.com/services/rest/',
-            'auth_uri' => 'https://api.flickr.com/services/auth/',
-        });
-    my $resp = $flickrapi->execute_method('flickr.photosets.getInfo', {
-            auth_token  => flickrconfig()->{auth_token},
-            photoset_id => $setid,
-        });
-    for my $n (@{$resp->{tree}->{children}}) {
-        next unless (exists $n->{name} and $n->{name} eq 'photoset');
-        for my $z (@{$n->{children}}) {
-            next unless exists $z->{name};
-            if ($z->{name} eq 'title') {
-                $infos{summary} = $z->{children}->[0]->{content};
-            } elsif ($z->{name} eq 'description' && $z->{children}->[0]->{content}) {
-                $infos{text} = $z->{children}->[0]->{content};
-            }
-        }
+  my ($setid) = @_;
+  my %infos = ( flickrset => $setid );
+  my $flickrapi = new Flickr::API({
+      'key'    => flickrconfig()->{key},
+      'secret' => flickrconfig()->{secret},
+      'rest_uri' => 'https://api.flickr.com/services/rest/',
+      'auth_uri' => 'https://api.flickr.com/services/auth/',
+    });
+  my $resp = $flickrapi->execute_method('flickr.photosets.getInfo', {
+      auth_token  => flickrconfig()->{auth_token},
+      photoset_id => $setid,
+    });
+  for my $n (@{$resp->{tree}->{children}}) {
+    next unless (exists $n->{name} and $n->{name} eq 'photoset');
+    for my $z (@{$n->{children}}) {
+      next unless exists $z->{name};
+      if ($z->{name} eq 'title') {
+        $infos{summary} = $z->{children}->[0]->{content};
+      } elsif ($z->{name} eq 'description' && $z->{children}->[0]->{content}) {
+        $infos{text} = $z->{children}->[0]->{content};
+      }
     }
-    $resp = $flickrapi->execute_method('flickr.photosets.getPhotos', {
-            auth_token     => flickrconfig()->{auth_token},
-            photoset_id    => $setid,
-            privacy_filter => $config{flickr_privacyfilter},
-        });
-    for my $n (@{$resp->{tree}->{children}}) {
-        next unless (exists $n->{name} and $n->{name} eq 'photoset');
-        for my $z (@{$n->{children}}) {
-            next unless exists $z->{name} and $z->{name} eq 'photo';
-            next unless loadimage($z->{attributes}->{id});
-            push @{$infos{imgs}}, $z->{attributes}->{id};
-        }
+  }
+  $resp = $flickrapi->execute_method('flickr.photosets.getPhotos', {
+      auth_token     => flickrconfig()->{auth_token},
+      photoset_id    => $setid,
+      privacy_filter => $config{flickr_privacyfilter},
+    });
+  for my $n (@{$resp->{tree}->{children}}) {
+    next unless (exists $n->{name} and $n->{name} eq 'photoset');
+    for my $z (@{$n->{children}}) {
+      next unless exists $z->{name} and $z->{name} eq 'photo';
+      next unless loadimage($z->{attributes}->{id});
+      push @{$infos{imgs}}, $z->{attributes}->{id};
     }
-    $infos{img} = $infos{imgs}->[0];
-    return \%infos;
+  }
+  $infos{img} = $infos{imgs}->[0];
+  return \%infos;
 }
 
 sub newpost {
-    my ($act, $postname, $flickrset) = @_;
-    my $postfile = "$in_posts/$postname.post";
-    die "$postname already exists" if -f $postfile;
-    my %post;
-    if ($act eq 'newset') {
-        %post = %{flickrset($flickrset)};
-    }
-    $post{name} = $postname;
-    $post{tags} = [];
-    $post{pubtime} = time;
-    $post{noindex} = 0;
-    $post{summary} //= 'Post summary';
-    DumpFile($postfile, \%post);
-    system('editor', $postfile);
+  my ($act, $postname, $flickrset) = @_;
+  my $postfile = "$in_posts/$postname.post";
+  die "$postname already exists" if -f $postfile;
+  my %post;
+  if ($act eq 'newset') {
+    %post = %{flickrset($flickrset)};
+  }
+  $post{name} = $postname;
+  $post{tags} = [];
+  $post{pubtime} = time;
+  $post{noindex} = 0;
+  $post{summary} //= 'Post summary';
+  DumpFile($postfile, \%post);
+  system('editor', $postfile);
 }
 
 sub mkall {
-    mkpost(@_);
-    mkindex(@_);
-    mktag(@_);
+  mkpost(@_);
+  mkindex(@_);
+  mktag(@_);
 }
 
 sub test {
-    my $set = flickrset('72157625182330472');
-    #my $set = flickrset('72157606699201082');
-    dump $set;
+  my $set = flickrset('72157625182330472');
+  #my $set = flickrset('72157606699201082');
+  dump $set;
 }
 
 # Download a flickr set to local directory, using specified file prefix
 sub download_flickr_set {
-    my ($act, $flickr_set, $file_prefix) = @_;
-    exit_error("usage: download_flickr_set <flickr-set> <file-prefix>")
-        unless @_ == 3;
-    my $set = flickrset($flickr_set);
-    my $i = 1;
-    for my $img (@{$set->{imgs}}) {
-        my $photo = flickrphoto($img);
-        next unless $photo;
-        my $url = $photo->{sources}{Original};
-        my $output_filename = sprintf("%s-%05d-%s.jpg", $file_prefix, $i++, $img);
-        exit_error("Error downloading $url")
-           unless system('wget', '-O', $output_filename, '--', $url) == 0;
-    }
+  my ($act, $flickr_set, $file_prefix) = @_;
+  exit_error("usage: download_flickr_set <flickr-set> <file-prefix>")
+  unless @_ == 3;
+  my $set = flickrset($flickr_set);
+  my $i = 1;
+  for my $img (@{$set->{imgs}}) {
+    my $photo = flickrphoto($img);
+    next unless $photo;
+    my $url = $photo->{sources}{Original};
+    my $output_filename = sprintf("%s-%05d-%s.jpg", $file_prefix, $i++, $img);
+    exit_error("Error downloading $url")
+    unless system('wget', '-O', $output_filename, '--', $url) == 0;
+  }
 }
 
 my %actions = (
-    mkpost   => \&mkpost,
-    mkindex  => \&mkindex,
-    mktag    => \&mktag,
-    mktar    => \&mktar,
-    mkall    => \&mkall,
-    download => \&download,
-    newpost  => \&newpost,
-    newset   => \&newpost,
-    test     => \&test,
-    download_flickr_set => \&download_flickr_set,
+  mkpost   => \&mkpost,
+  mkindex  => \&mkindex,
+  mktag    => \&mktag,
+  mktar    => \&mktar,
+  mkall    => \&mkall,
+  download => \&download,
+  newpost  => \&newpost,
+  newset   => \&newpost,
+  test     => \&test,
+  download_flickr_set => \&download_flickr_set,
 );
 
 if (@ARGV == 0) {
-    mkall();
+  mkall();
 } elsif (exists $actions{$ARGV[0]}) {
-    $actions{$ARGV[0]}->(@ARGV);
+  $actions{$ARGV[0]}->(@ARGV);
 } else {
-    print STDERR "Unknow command $ARGV[0]\n",
-                 "Available commands :\n",
-                 map { "- $_\n" }  keys %actions;
+  print STDERR "Unknow command $ARGV[0]\n",
+        "Available commands :\n",
+        map { "- $_\n" }  keys %actions;
 }
-
