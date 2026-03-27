@@ -1,5 +1,5 @@
 [%- USE date -%]
-[%- USE JSON.Escape ( pretty => 1 ) -%]
+[%- USE JSON.Escape ( pretty => 1, canonical => 1 ) -%]
 [%-
   SET jsposts   = [];
   SET tags_lst  = [];
