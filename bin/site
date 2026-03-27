@@ -40,11 +40,9 @@ my %default_config = (
 );
 
 my $in_posts = fpath($config{in_posts});
-my $in_imgs = fpath($config{in_imgs});
 
 my %posts;
 my %imgs;
-my %imgs_sources;
 
 my $flickrphoto_loaded;
 
@@ -100,60 +98,12 @@ sub load_imgs {
   %imgs = %$data;
 }
 
-sub parse_url {
-  my ($imgid, $url, $suffix) = @_;
-  if ($url =~ m|https?://[^/]+/(\d+)/${imgid}_([^\.]+)$suffix.jpg|) {
-    return ($1, $2);
-  }
-  exit_error "Error parsing url $url (imgid: $imgid, suffix: $suffix)";
-}
-
-sub loadimage_old {
-  my ($imgid, $filename) = @_;
-  print "loading $filename\n";
-  my $data = LoadFile($filename);
-  my %res;
-  $res{name} = $data->{name};
-  for my $source (keys %{$data->{sources}}) {
-    if ($source eq 'Original') {
-      my ($server, $originalsecret) =
-        parse_url($imgid, $data->{sources}{$source}, $size_suffix{$source});
-      if ($res{server} && $res{server} ne $server) {
-        exit_error "Wrong server in $imgid";
-      }
-      $res{server} = $server;
-      $res{originalsecret} = $originalsecret;
-      $res{originalformat} = 'jpg';
-    } else{
-      my ($server, $secret) =
-        parse_url($imgid, $data->{sources}{$source}, $size_suffix{$source});
-      if ($res{server} && $res{server} ne $server) {
-        exit_error "Wrong server in $imgid";
-      }
-      if ($res{secret} && $res{secret} ne $secret) {
-        exit_error "Wrong secret in $imgid";
-      }
-      $res{server} = $server;
-      $res{secret} = $secret;
-    }
-  }
-  return \%res;
-}
-
 sub loadimage {
   my ($imgid) = @_;
   return if exists $imgs{$imgid};
-  return if exists $imgs_sources{$imgid};
-  my $filename = "$in_imgs/$imgid.img";
-  if ( -f $filename) {
-    $imgs{$imgid} = loadimage_old($imgid, $filename);
-    $flickrphoto_loaded = 1;
-  } else {
-    $imgs{$imgid} = flickrphoto($imgid);
-    $flickrphoto_loaded = 1;
-    return undef unless $imgs{$imgid};
-  }
-  return 1;
+  $imgs{$imgid} = flickrphoto($imgid);
+  $flickrphoto_loaded = 1;
+  return $imgs{$imgid} ? 1 : undef;
 }
 
 sub loadpost {
@@ -172,23 +122,20 @@ sub loadpost {
     loadimage($img);
   }
   save_imgs;
+  return @{$posts{$postname}->{imgs}};
 }
 
 sub loadthings {
   my @things = @_;
+  my @res;
   for my $thing (@things) {
     if (-f "$in_posts/$thing.post") {
-      loadpost($thing);
-    } elsif (-f "$in_imgs/$thing.img") {
-      loadimage($thing);
+      push @res, loadpost($thing);
     } elsif (-f $thing) {
       my $path = realpath($thing);
       my $postsdir = realpath($in_posts);
-      my $imgsdir = realpath($in_imgs);
       if ($path =~ m|^$postsdir/(.*)\.post$|) {
-        loadpost($1);
-      } elsif ($path =~ m|^$imgsdir/(.*)\.img$|) {
-        loadimage($1);
+        push @res, loadpost($1);
       } else {
         print STDERR "Could not load $thing\n";
       }
@@ -196,7 +143,7 @@ sub loadthings {
       print STDERR "Could not load $thing\n";
     }
   }
-  save_imgs;
+  return @res;
 }
 
 sub processtemplate {
@@ -334,9 +281,10 @@ sub mktag {
 sub download {
   local $| = 1;
   shift;
-  loadthings(@_ ? @_ : glob "$in_posts/*.post");
+  my @imgs_lst = loadthings(@_ ? @_ : glob "$in_posts/*.post");
+  @imgs_lst = keys %imgs unless @_;
   my $ua = LWP::UserAgent->new;
-  for my $imgid (sort keys %imgs, sort keys %imgs_sources) {
+  for my $imgid (sort @imgs_lst) {
     for my $size (sort keys %size_suffix) {
       my $imgfile = fpath("$config{out_imgs}/$imgid$source_ext{$size}");
       next if -f $imgfile;
@@ -391,9 +339,7 @@ sub mktar {
 
 sub photo_url {
   my ($imgid, $size) = @_;
-  return $imgs_sources{$imgid}{sources}{$size}
-        if $imgs_sources{$imgid}{sources}{$size};
-  exit_error "Unknown size" unless $size_suffix{$size};
+  exit_error "Unknown size $size" unless defined $size_suffix{$size};
   exit_error "Could not get image info for $imgid"  unless $imgs{$imgid};
   my %img = %{$imgs{$imgid}};
   return "https://live.staticflickr.com/$img{server}/${imgid}_$img{originalsecret}_o.$img{originalformat}"
@@ -535,11 +481,6 @@ sub download_flickr_set {
   }
 }
 
-sub convert_imgs_sources {
-  loadthings(glob "$in_imgs/*.img");
-  save_imgs;
-}
-
 my %actions = (
   mkpost   => \&mkpost,
   mkindex  => \&mkindex,
@@ -551,7 +492,6 @@ my %actions = (
   newset   => \&newpost,
   test     => \&test,
   download_flickr_set => \&download_flickr_set,
-  convert_imgs_sources => \&convert_imgs_sources,
 );
 
 load_imgs;
