@@ -2,28 +2,35 @@
 
 use v5.10;
 use strict;
+use utf8;
 use Flickr::API;
 use File::Basename;
 use YAML::XS qw/LoadFile DumpFile/;
+use JSON;
 use Template;
 use Cwd qw/realpath/;
 use LWP;
 use Archive::Tar;
 use File::Slurp;
 use File::Temp;
+use Path::Tiny;
 use Text::MultiMarkdown qw/markdown/;
 use Data::Dump qw/dump/;
+
+binmode STDOUT, ':utf8';
+binmode STDERR, ':utf8';
 
 my $dname = dirname($0);
 my $bname = basename($0);
 
-sub path {
+sub fpath {
   ( $_[0] =~ m|^/| ) ? $_[0] : "$dname/../$_[0]";
 }
 my $config_file = "$dname/../conf/$bname";
 my %config = %{LoadFile($config_file)};
 
 my %default_config = (
+  imgs_infos  => 'imgs.json',
   tar_options => {
     uname => 'root',
     gname => 'root',
@@ -32,11 +39,14 @@ my %default_config = (
   },
 );
 
-my $in_posts = path($config{in_posts});
-my $in_imgs = path($config{in_imgs});
+my $in_posts = fpath($config{in_posts});
+my $in_imgs = fpath($config{in_imgs});
 
 my %posts;
 my %imgs;
+my %imgs_sources;
+
+my $flickrphoto_loaded;
 
 my %source_ext = (
   Large    => '-l.jpg',
@@ -44,6 +54,14 @@ my %source_ext = (
   Original => '-o.jpg',
   Small    => '-s.jpg',
   Square   => '-t.jpg',
+);
+
+my %size_suffix = (
+  Large    => '_b',
+  Medium   => '',
+  Original => '_o',
+  Small    => '_m',
+  Square   => '_s',
 );
 
 sub exit_error {
@@ -68,20 +86,31 @@ sub flickrconfig {
   return $flickrconfig = LoadFile($configfile);
 }
 
+sub save_imgs {
+  return unless $flickrphoto_loaded;
+  my $filename = fpath(getoption([], 'imgs_infos'));
+  my $jsondata = JSON->new->canonical->pretty->encode(\%imgs);
+  path($filename)->spew_utf8($jsondata);
+}
+
+sub load_imgs {
+  my $filename = fpath(getoption([], 'imgs_infos'));
+  return unless -f $filename;
+  my $data = JSON->new->decode(path($filename)->slurp_utf8);
+  %imgs = %$data;
+}
+
 sub loadimage {
   my ($imgid) = @_;
   return if exists $imgs{$imgid};
+  return if exists $imgs_sources{$imgid};
   my $filename = "$in_imgs/$imgid.img";
   if ( -f $filename) {
-    $imgs{$imgid} = LoadFile($filename);
+    $imgs_sources{$imgid} = LoadFile($filename);
   } else {
     $imgs{$imgid} = flickrphoto($imgid);
+    $flickrphoto_loaded = 1;
     return undef unless $imgs{$imgid};
-    DumpFile($filename, $imgs{$imgid});
-  }
-  for my $src (keys %{$imgs{$imgid}->{sources}}) {
-    my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
-    $imgs{$imgid}->{local}->{$src} = -f $imgfile;
   }
   return 1;
 }
@@ -101,6 +130,7 @@ sub loadpost {
   for my $img (@{$posts{$postname}->{imgs}}) {
     loadimage($img);
   }
+  save_imgs;
 }
 
 sub loadthings {
@@ -125,13 +155,14 @@ sub loadthings {
       print STDERR "Could not load $thing\n";
     }
   }
+  save_imgs;
 }
 
 sub processtemplate {
   my ($template, $input, $vars, $output) = @_;
   $vars = { markdown => sub { markdown(@_) }, %$vars };
   for my $format (@{$config{out_formats}}) {
-    next unless -f join '/', path($config{tmpl}), "$input.$format";
+    next unless -f join '/', fpath($config{tmpl}), "$input.$format";
     my %v = ( %$vars, img_f => sub { img_filter($format) } );
     $template->process("$input.$format", \%v, "$output.$format",
       binmode => ':utf8')
@@ -146,7 +177,7 @@ sub img_filter {
   return sub {
     my ($text) = @_;
     return "" unless $text;
-    my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}), });
+    my $template = Template->new({ INCLUDE_PATH => fpath($config{tmpl}), });
     my $res;
     for my $line (split /^/, $text) {
       if ($line =~ m/^\s*img\((\d+)\)$/) {
@@ -173,8 +204,8 @@ sub mkindex {
     loadpost($post);
   }
   my $template = Template->new({
-      INCLUDE_PATH => path($config{tmpl}),
-      OUTPUT_PATH  => path($config{out_pages}),
+      INCLUDE_PATH => fpath($config{tmpl}),
+      OUTPUT_PATH  => fpath($config{out_pages}),
     });
   my @oposts = sort { $b->{pubtime} <=> $a->{pubtime} } values %posts;
   my $vars = {
@@ -190,7 +221,7 @@ sub asciidoc_content {
   my ($post, $content) = @_;
   my $tmpdir = File::Temp->newdir;
   write_file("$tmpdir/content.asc", $content);
-  system('asciidoc', '-f', path($config{asciidoc_conf}), '-b', 'html4',
+  system('asciidoc', '-f', fpath($config{asciidoc_conf}), '-b', 'html4',
     "$tmpdir/content.asc");
   return read_file("$tmpdir/content.html");
 }
@@ -198,8 +229,8 @@ sub asciidoc_content {
 sub mkpost {
   shift;
   my $template = Template->new({
-      INCLUDE_PATH => path($config{tmpl}),
-      OUTPUT_PATH  => path($config{out_pages}),
+      INCLUDE_PATH => fpath($config{tmpl}),
+      OUTPUT_PATH  => fpath($config{out_pages}),
     });
   my @posts = @_ ? @_ : glob "$in_posts/*.post";
   for my $post (@posts) {
@@ -232,8 +263,8 @@ sub mktag {
     }
   }
   my $template = Template->new({
-      INCLUDE_PATH => path($config{tmpl}),
-      OUTPUT_PATH  => path($config{out_tags}),
+      INCLUDE_PATH => fpath($config{tmpl}),
+      OUTPUT_PATH  => fpath($config{out_tags}),
     });
   @tlist = keys %tags unless @tlist;
   for my $tagname (keys %tags) {
@@ -264,12 +295,12 @@ sub download {
   shift;
   loadthings(@_ ? @_ : glob "$in_posts/*.post");
   my $ua = LWP::UserAgent->new;
-  for my $imgid (keys %imgs) {
-    for my $src (keys %{$imgs{$imgid}->{sources}}) {
-      next if $imgs{$imgid}->{local}->{$src};
-      my $imgfile = path("$config{out_imgs}/$imgid$source_ext{$src}");
-      my $url = $imgs{$imgid}->{sources}->{$src};
-      print "Downloading $imgid$source_ext{$src}: ";
+  for my $imgid (sort keys %imgs, sort keys %imgs_sources) {
+    for my $size (sort keys %size_suffix) {
+      my $imgfile = fpath("$config{out_imgs}/$imgid$source_ext{$size}");
+      next if -f $imgfile;
+      my $url = photo_url($imgid, $size);
+      print "Downloading $imgid$source_ext{$size}: ";
       my $r = $ua->get($url);
       die "failed to download $url:\n", $r->status_line, "\n"
         unless $r->is_success;
@@ -282,7 +313,7 @@ sub download {
 sub mktar {
   shift;
   my @plst = @_;
-  my $template = Template->new({ INCLUDE_PATH => path($config{tmpl}) });
+  my $template = Template->new({ INCLUDE_PATH => fpath($config{tmpl}) });
   download('download', @plst);
   for my $post (@plst) {
     my $tarfile = "$config{out_imgs}/$post.tar";
@@ -317,6 +348,18 @@ sub mktar {
   }
 }
 
+sub photo_url {
+  my ($imgid, $size) = @_;
+  return $imgs_sources{$imgid}{sources}{$size}
+        if $imgs_sources{$imgid}{sources}{$size};
+  exit_error "Unknown size" unless $size_suffix{$size};
+  exit_error "Could not get image info for $imgid"  unless $imgs{$imgid};
+  my %img = %{$imgs{$imgid}};
+  return "https://live.staticflickr.com/$img{server}/${imgid}_$img{originalsecret}_o.$img{originalformat}"
+        if $size eq 'Original';
+  return "https://live.staticflickr.com/$img{server}/${imgid}_$img{secret}$size_suffix{$size}.jpg"
+}
+
 sub get_flickrapi {
   state $flickrapi;
   return $flickrapi if $flickrapi;
@@ -325,6 +368,7 @@ sub get_flickrapi {
       'secret' => flickrconfig()->{secret},
       'rest_uri' => 'https://api.flickr.com/services/rest/',
       'auth_uri' => 'https://api.flickr.com/services/auth/',
+      'unicode'  => 1,
     });
 }
 
@@ -360,20 +404,10 @@ sub flickrphoto {
           $infos{name} = $o->{children}[0]->{content};
         }
       }
-    }
-  }
-  $resp = $flickrapi->execute_method('flickr.photos.getSizes', {
-      auth_token => flickrconfig()->{auth_token},
-      photo_id   => $photoid,
-    });
-  for my $n (@{$resp->{tree}->{children}}) {
-    next unless (exists $n->{name} and $n->{name} eq 'sizes'); 
-    for my $size (@{$n->{children}}) {
-      next unless exists $size->{name} and $size->{name} eq 'size';
-      next unless exists $size->{attributes};
-      my $label = $size->{attributes}->{label};
-      next unless grep {$_ eq $label} (keys %source_ext);
-      $infos{sources}->{$label} = $size->{attributes}->{source};
+
+      for my $attribute (qw/secret originalsecret originalformat server/) {
+        $infos{$attribute} = $n->{attributes}{$attribute};
+      }
     }
   }
   return \%infos;
@@ -452,9 +486,8 @@ sub download_flickr_set {
   my $set = flickrset($flickr_set);
   my $i = 1;
   for my $img (@{$set->{imgs}}) {
-    my $photo = flickrphoto($img);
-    next unless $photo;
-    my $url = $photo->{sources}{Original};
+    loadimage($img);
+    my $url = photo_url($img, 'Original');
     my $output_filename = sprintf("%s-%05d-%s.jpg", $file_prefix, $i++, $img);
     exit_error("Error downloading $url")
         unless system('wget', '-O', $output_filename, '--', $url) == 0;
@@ -473,6 +506,8 @@ my %actions = (
   test     => \&test,
   download_flickr_set => \&download_flickr_set,
 );
+
+load_imgs;
 
 if (@ARGV == 0) {
   mkall();
