@@ -57,8 +57,7 @@ sub getoption {
   for my $conf (@{$confs}) {
     return $conf->{$key} if exists $conf->{$key};
   }
-  $config{$key} ? $config{$key} :
-  $default_config{$key};
+  $config{$key} ? $config{$key} : $default_config{$key};
 }
 
 my $flickrconfig;
@@ -93,7 +92,7 @@ sub loadpost {
   my @post_data = LoadFile("$in_posts/$postname.post");
   $posts{$postname} = $post_data[0];
   $posts{$postname}->{content} = asciidoc_content($postname, $post_data[1])
-  if $post_data[1];
+        if $post_data[1];
   if (!$posts{$postname}->{pubtime}) {
     delete $posts{$postname};
     return;
@@ -273,7 +272,7 @@ sub download {
       print "Downloading $imgid$source_ext{$src}: ";
       my $r = $ua->get($url);
       die "failed to download $url:\n", $r->status_line, "\n"
-      unless $r->is_success;
+        unless $r->is_success;
       write_file($imgfile, $r->decoded_content);
       print "OK\n";
     }
@@ -449,7 +448,7 @@ sub test {
 sub download_flickr_set {
   my ($act, $flickr_set, $file_prefix) = @_;
   exit_error("usage: download_flickr_set <flickr-set> <file-prefix>")
-  unless @_ == 3;
+        unless @_ == 3;
   my $set = flickrset($flickr_set);
   my $i = 1;
   for my $img (@{$set->{imgs}}) {
@@ -458,7 +457,7 @@ sub download_flickr_set {
     my $url = $photo->{sources}{Original};
     my $output_filename = sprintf("%s-%05d-%s.jpg", $file_prefix, $i++, $img);
     exit_error("Error downloading $url")
-    unless system('wget', '-O', $output_filename, '--', $url) == 0;
+        unless system('wget', '-O', $output_filename, '--', $url) == 0;
   }
 }
 
