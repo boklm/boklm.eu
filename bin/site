@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 
+use v5.10;
 use strict;
 use Flickr::API;
 use File::Basename;
@@ -317,16 +318,22 @@ sub mktar {
   }
 }
 
-sub flickrphoto {
-  my ($photoid) = @_;
-  print "Loading metadata for photo $photoid from flickr\n";
-  my %infos;
-  my $flickrapi = new Flickr::API({
+sub get_flickrapi {
+  state $flickrapi;
+  return $flickrapi if $flickrapi;
+  return $flickrapi = new Flickr::API({
       'key'    => flickrconfig()->{key},
       'secret' => flickrconfig()->{secret},
       'rest_uri' => 'https://api.flickr.com/services/rest/',
       'auth_uri' => 'https://api.flickr.com/services/auth/',
     });
+}
+
+sub flickrphoto {
+  my ($photoid) = @_;
+  print "Loading metadata for photo $photoid from flickr\n";
+  my %infos;
+  my $flickrapi = get_flickrapi;
   my $resp = $flickrapi->execute_method('flickr.photos.getInfo', {
       auth_token => flickrconfig()->{auth_token},
       photo_id   => $photoid,
@@ -376,12 +383,7 @@ sub flickrphoto {
 sub flickrset {
   my ($setid) = @_;
   my %infos = ( flickrset => $setid );
-  my $flickrapi = new Flickr::API({
-      'key'    => flickrconfig()->{key},
-      'secret' => flickrconfig()->{secret},
-      'rest_uri' => 'https://api.flickr.com/services/rest/',
-      'auth_uri' => 'https://api.flickr.com/services/auth/',
-    });
+  my $flickrapi = get_flickrapi;
   my $resp = $flickrapi->execute_method('flickr.photosets.getInfo', {
       auth_token  => flickrconfig()->{auth_token},
       photoset_id => $setid,
