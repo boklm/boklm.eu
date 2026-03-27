@@ -100,13 +100,54 @@ sub load_imgs {
   %imgs = %$data;
 }
 
+sub parse_url {
+  my ($imgid, $url, $suffix) = @_;
+  if ($url =~ m|https?://[^/]+/(\d+)/${imgid}_([^\.]+)$suffix.jpg|) {
+    return ($1, $2);
+  }
+  exit_error "Error parsing url $url (imgid: $imgid, suffix: $suffix)";
+}
+
+sub loadimage_old {
+  my ($imgid, $filename) = @_;
+  print "loading $filename\n";
+  my $data = LoadFile($filename);
+  my %res;
+  $res{name} = $data->{name};
+  for my $source (keys %{$data->{sources}}) {
+    if ($source eq 'Original') {
+      my ($server, $originalsecret) =
+        parse_url($imgid, $data->{sources}{$source}, $size_suffix{$source});
+      if ($res{server} && $res{server} ne $server) {
+        exit_error "Wrong server in $imgid";
+      }
+      $res{server} = $server;
+      $res{originalsecret} = $originalsecret;
+      $res{originalformat} = 'jpg';
+    } else{
+      my ($server, $secret) =
+        parse_url($imgid, $data->{sources}{$source}, $size_suffix{$source});
+      if ($res{server} && $res{server} ne $server) {
+        exit_error "Wrong server in $imgid";
+      }
+      if ($res{secret} && $res{secret} ne $secret) {
+        exit_error "Wrong secret in $imgid";
+      }
+      $res{server} = $server;
+      $res{secret} = $secret;
+    }
+  }
+  return \%res;
+}
+
 sub loadimage {
   my ($imgid) = @_;
   return if exists $imgs{$imgid};
   return if exists $imgs_sources{$imgid};
   my $filename = "$in_imgs/$imgid.img";
   if ( -f $filename) {
-    $imgs_sources{$imgid} = LoadFile($filename);
+    $imgs{$imgid} = loadimage_old($imgid, $filename);
+    $flickrphoto_loaded = 1;
   } else {
     $imgs{$imgid} = flickrphoto($imgid);
     $flickrphoto_loaded = 1;
@@ -494,6 +535,11 @@ sub download_flickr_set {
   }
 }
 
+sub convert_imgs_sources {
+  loadthings(glob "$in_imgs/*.img");
+  save_imgs;
+}
+
 my %actions = (
   mkpost   => \&mkpost,
   mkindex  => \&mkindex,
@@ -505,6 +551,7 @@ my %actions = (
   newset   => \&newpost,
   test     => \&test,
   download_flickr_set => \&download_flickr_set,
+  convert_imgs_sources => \&convert_imgs_sources,
 );
 
 load_imgs;
