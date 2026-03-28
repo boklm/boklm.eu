@@ -120,7 +120,6 @@ sub loadpost {
     delete $posts{$postname};
     return;
   }
-  print "Loaded $postname\n";
   for my $img (@{$posts{$postname}->{imgs}}) {
     loadimage($img);
   }
@@ -456,6 +455,7 @@ sub newpost {
   $post{summary} //= 'Post summary';
   DumpFile($postfile, \%post);
   system('editor', $postfile);
+  mkall();
 }
 
 sub mkall {
