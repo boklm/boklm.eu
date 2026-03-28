@@ -89,6 +89,7 @@ sub save_imgs {
   my $filename = fpath(getoption([], 'imgs_infos'));
   my $jsondata = JSON->new->canonical->pretty->encode(\%imgs);
   path($filename)->spew_utf8($jsondata);
+  $flickrphoto_loaded = undef;
 }
 
 sub load_imgs {
@@ -100,9 +101,11 @@ sub load_imgs {
 
 sub loadimage {
   my ($imgid) = @_;
-  return if exists $imgs{$imgid};
-  $imgs{$imgid} = flickrphoto($imgid);
-  $flickrphoto_loaded = 1;
+  $imgs{$imgid} //= flickrphoto($imgid);
+  for my $attribute (qw/secret originalsecret originalformat server/) {
+    exit_error "Image $imgid is missing $attribute"
+        unless defined $imgs{$imgid}{$attribute};
+  }
   return $imgs{$imgid} ? 1 : undef;
 }
 
@@ -361,6 +364,7 @@ sub get_flickrapi {
 
 sub flickrphoto {
   my ($photoid) = @_;
+  $flickrphoto_loaded = 1;
   print "Loading metadata for photo $photoid from flickr\n";
   my %infos;
   my $flickrapi = get_flickrapi;
