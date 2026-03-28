@@ -69,9 +69,13 @@
             </form>
         </div>
         <div id="post_images">
-            <div class="img_m">
-                <img src="[% config.imgsurl %]/[% post.img %]-m.jpg" />
-            </div>
+          [% FOR img IN post.imgs %]
+          <div class="img_l">
+            <a href="[% config.imgsurl %]/[% img %]-o.jpg">
+              <img src="[% config.imgsurl %]/[% img %]-l.jpg" alt="[% imgs.$img.name | html_entity %]" />
+            </a>
+          </div>
+          [% END %]
         </div>
         <script type="text/javascript">
             var d = default_size();
