@@ -432,11 +432,12 @@ sub flickrset {
     next unless (exists $n->{name} and $n->{name} eq 'photoset');
     for my $z (@{$n->{children}}) {
       next unless exists $z->{name} and $z->{name} eq 'photo';
-      next unless loadimage($z->{attributes}->{id});
+      loadimage($z->{attributes}->{id});
       push @{$infos{imgs}}, $z->{attributes}->{id};
     }
   }
   $infos{img} = $infos{imgs}->[0];
+  save_imgs;
   return \%infos;
 }
 
