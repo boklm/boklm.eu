@@ -24,7 +24,7 @@
             <description>
               [% FOR img IN post.imgs %]
                 &lt;p&gt;&lt;a href=&quot;[% config.imgsurl %]/[% img %]-o.jpg&quot;&gt;
-                &lt;img src=&quot;[% config.imgsurl %]/[% img %]-m.jpg&quot; alt=&quot;[% img %]&quot; /&gt;
+                &lt;img src=&quot;[% config.imgsurl %]/[% img %]-l.jpg&quot; alt=&quot;[% img %]&quot; /&gt;
                 &lt;/a&gt;&lt;/p&gt;
               [% END %]
             </description>
